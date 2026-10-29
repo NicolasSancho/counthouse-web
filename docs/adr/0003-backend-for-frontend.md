@@ -2,6 +2,8 @@
 
 Status: Accepted
 
+Implementation: not started. This record describes the decision, and the code does not follow it yet.
+
 ## Context
 
 The web app talks to a separate API that authenticates with tokens. A token held in the browser
