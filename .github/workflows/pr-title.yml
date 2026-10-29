@@ -1,0 +1,32 @@
+name: PR title
+
+# Squash merge makes the PR title the commit on main, so the title has to follow Conventional
+# Commits. Its own workflow, because it must also run when the title is edited, which the other
+# checks do not need.
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  conventional-title:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+
+    steps:
+      - name: Check the PR title
+        env:
+          # Passed through the environment, never interpolated into the script.
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          pattern='^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\([a-z0-9-]+\))?!?: .+'
+          if ! printf '%s' "$PR_TITLE" | grep -Eq "$pattern"; then
+            echo "::error::The PR title must follow Conventional Commits, for example: feat(auth): add login page"
+            exit 1
+          fi
+          if [ "${#PR_TITLE}" -gt 72 ]; then
+            echo "::error::The PR title must be 72 characters or fewer (now ${#PR_TITLE})."
+            exit 1
+          fi

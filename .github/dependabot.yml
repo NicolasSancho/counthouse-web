@@ -1,0 +1,43 @@
+version: 2
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      # Every action is pinned in the workflows, so separate PRs would each edit the same lines and
+      # rebase one after the other. One PR keeps cache and cache/restore on the same version too.
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # next and eslint-config-next are pinned to the same version and must move together.
+      next:
+        patterns:
+          - next
+          - eslint-config-next
+      react:
+        patterns:
+          - react
+          - react-dom
+          - "@types/react"
+          - "@types/react-dom"
+    ignore:
+      # typescript-eslint, which the lint setup depends on, does not support TypeScript 7 yet:
+      # `npm run lint` fails to start. Update by hand once it does.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # eslint-config-next and the plugins it brings declare peer support up to ESLint 9. Move to 10
+      # once they do.
+      - dependency-name: eslint
+        update-types: ["version-update:semver-major"]
+      # The types follow the Node version CI and local development run (24), not the latest Node.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
