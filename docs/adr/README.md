@@ -10,3 +10,4 @@ is accepted. A later record supersedes it and says so.
 | [0003 Backend for frontend](0003-backend-for-frontend.md)                       | Accepted |
 | [0004 Authentication](0004-authentication.md)                                   | Proposed |
 | [0005 Contract pin and mock server](0005-contract-pin-and-mock-server.md)       | Accepted |
+| [0006 Tenant theme injection](0006-tenant-theme-injection.md)                   | Accepted |
