@@ -5,7 +5,10 @@ Web app for Counthouse, a back office, built with Next.js.
 ## Stack
 
 Next.js 16 (App Router, Cache Components, typed routes), React 19, TypeScript (strict), Tailwind
-CSS v4. Tests: Vitest, and Playwright with axe for accessibility. CI runs on GitHub Actions.
+CSS v4. Components and design tokens come from
+[`@nicolassancho/storybook-core`](https://www.npmjs.com/package/@nicolassancho/storybook-core); the
+font is Inter, self-hosted with `next/font`. Tests: Vitest, and Playwright with axe for
+accessibility. CI runs on GitHub Actions.
 
 ## Getting started
 

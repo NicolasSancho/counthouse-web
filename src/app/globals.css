@@ -1,26 +1,20 @@
 @import "tailwindcss";
+@import "@nicolassancho/storybook-core/styles/theme.css";
+/* Tailwind does not scan node_modules, so without this line the library components render unstyled. */
+@source "../../node_modules/@nicolassancho/storybook-core/dist";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
+/* Inter is loaded with next/font in the root layout, which sets --font-inter. */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/*
+  Default brand: violet. It overrides the same two library tokens a tenant brand does, so the
+  library's own default stays unchanged for its other consumers. Primary against the surface, which
+  has the same value as on-primary, measures 6.4:1 (light) and 6.0:1 (dark); the hover step measures
+  8.7:1 and 7.8:1. Text needs 4.5:1.
+*/
+:root {
+  --color-primary: light-dark(#6b4cae, #9f82e9);
+  --color-primary-darker: light-dark(#583797, #b499ff);
 }
