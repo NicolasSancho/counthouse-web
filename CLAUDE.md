@@ -78,6 +78,13 @@ only for trying an unreleased change and is never committed. Fix a missing or wr
 the library first, release it, then upgrade here. Never copy or fork library code. Only
 app-specific layout and screens live in this repo.
 
+- Styles: `src/app/globals.css` imports the library's `theme.css` and points `@source` at its
+  `dist` folder, because Tailwind does not scan `node_modules`. Use the token classes
+  (`bg-surface`, `text-neutral-900`, `bg-primary text-on-primary`), never hard-coded colors: they
+  switch with the theme and the brand.
+- The default brand (violet) overrides `--color-primary` and `--color-primary-darker` in
+  `globals.css`. Tenants change these two tokens only. Every tenant uses the same font, Inter,
+  loaded with `next/font` in the root layout.
 - With `typedRoutes` on, Next.js rejects `next/link` passed directly as a library `LinkComponent`:
   its `href` is typed as a known route and the library passes a string. Wrap `Link` once in a small
   component that casts `href`, and pass the wrapper (see the library's Consumers guide).
