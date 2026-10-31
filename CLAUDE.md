@@ -54,8 +54,20 @@ request, so run them locally before opening one.
 
 ## API contract
 
-The OpenAPI contract belongs to `counthouse-api` and changes there by pull request. This repo
-keeps a pinned copy and generates types from it. Never edit generated files by hand.
+The OpenAPI contract belongs to `counthouse-api` and changes there by pull request, before any
+code that depends on it. It has not been added there yet, so this repo has no pinned copy and no
+generated types today. Once it exists, this repo keeps a pinned copy and generates types from it.
+Never edit generated files by hand.
+
+Planned and not set up yet (see [ADR 0005](docs/adr/0005-contract-pin-and-mock-server.md)):
+
+- Generate the types with `openapi-typescript <pinned contract> --default-non-nullable false`. The
+  flag is required: without it a schema default makes a request field required in the generated
+  type.
+- Call the API with `openapi-fetch`, from `src/server` only.
+- `API_MODE=mock|live` is set per deployment. In mock mode the app answers its own API calls from a
+  mock server built from the contract. There is no fallback from live to mock at runtime.
+- Update the pinned copy after the contract change has merged in `counthouse-api`.
 
 ## UI library
 
@@ -65,3 +77,7 @@ Shared components come from
 only for trying an unreleased change and is never committed. Fix a missing or wrong component in
 the library first, release it, then upgrade here. Never copy or fork library code. Only
 app-specific layout and screens live in this repo.
+
+- With `typedRoutes` on, Next.js rejects `next/link` passed directly as a library `LinkComponent`:
+  its `href` is typed as a known route and the library passes a string. Wrap `Link` once in a small
+  component that casts `href`, and pass the wrapper (see the library's Consumers guide).
