@@ -1,14 +1,7 @@
-import { Text } from "@nicolassancho/storybook-core";
+import { redirect } from "next/navigation";
 
+// Products is the only screen so far. A temporary redirect, because `/` will route by session once
+// sign-in exists, and browsers cache a permanent one.
 export default function Home() {
-  return (
-    <main className="flex flex-1 flex-col items-center justify-center gap-2 px-6">
-      <Text as="h1" size="heading" weight="semibold">
-        Counthouse
-      </Text>
-      <Text size="large" color="primary">
-        Back office
-      </Text>
-    </main>
-  );
+  redirect("/products");
 }

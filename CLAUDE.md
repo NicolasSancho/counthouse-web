@@ -26,6 +26,8 @@ request, so run them locally before opening one.
   folders. Move code here when a second feature needs it.
 - Dependencies point one way: `app` to `features` to `shared` and `server`, and a feature does not
   import another feature. ESLint enforces this and the `process.env` rule (`eslint.config.mjs`).
+- The signed-in layout is `src/features/shell`, used by the `src/app/(app)` route group. Pages
+  outside that group, such as sign-in, render without it.
 - Create a folder when its first file exists. Do not add barrel files.
 
 ## Conventions
@@ -86,5 +88,5 @@ app-specific layout and screens live in this repo.
   `globals.css`. Tenants change these two tokens only. Every tenant uses the same font, Inter,
   loaded with `next/font` in the root layout.
 - With `typedRoutes` on, Next.js rejects `next/link` passed directly as a library `LinkComponent`:
-  its `href` is typed as a known route and the library passes a string. Wrap `Link` once in a small
-  component that casts `href`, and pass the wrapper (see the library's Consumers guide).
+  its `href` is typed as a known route and the library passes a string. Pass `NavLink`
+  (`src/shared/nav-link.tsx`) instead, and keep the hrefs typed as `Route` where they are defined.

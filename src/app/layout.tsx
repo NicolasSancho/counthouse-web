@@ -8,7 +8,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Counthouse",
+  // Pages set their own title, which becomes "Products · Counthouse".
+  title: { template: "%s · Counthouse", default: "Counthouse" },
   description: "Counthouse back office",
 };
 
