@@ -8,7 +8,5 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts"],
-    // The skeleton has no logic to test yet. Remove this when the first test lands.
-    passWithNoTests: true,
   },
 });
