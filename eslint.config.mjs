@@ -98,6 +98,8 @@ const eslintConfig = defineConfig([
     "playwright-report/**",
     "test-results/**",
     "coverage/**",
+    // Generated from the pinned API contract by `npm run contract:types`.
+    "src/server/api/schema.d.ts",
   ]),
 ]);
 

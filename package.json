@@ -5,6 +5,10 @@
   "engines": {
     "node": ">=24"
   },
+  "config": {
+    "contractRepo": "Mfigueira98/counthouse-api",
+    "contractCommit": "912a17d61afff98dfa2467c4eaea405ceb1d5e20"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -14,7 +18,9 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:e2e": "playwright test",
-    "typecheck": "next typegen && tsc --noEmit"
+    "typecheck": "next typegen && tsc --noEmit",
+    "contract:types": "openapi-typescript contract/openapi.yaml --default-non-nullable false --output src/server/api/schema.d.ts",
+    "contract:check": "node scripts/check-contract.mjs"
   },
   "dependencies": {
     "@nicolassancho/storybook-core": "^4.4.1",
@@ -34,6 +40,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.3",
     "eslint-plugin-boundaries": "^7.4.0",
+    "openapi-typescript": "7.13.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
     "tailwindcss": "^4",
