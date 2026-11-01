@@ -2,14 +2,15 @@
 
 Status: Accepted
 
-Implementation: not started. The contract has not been added to `counthouse-api` yet, so there is
-nothing to pin today, and the mechanisms under "Not verified" are planned and untested.
+Implementation: the pinned copy, the generated types and their CI checks are in place (contract
+0.3.0, see [`contract/README.md`](../../contract/README.md)). `openapi-fetch` and the mock server
+are not built yet; the mechanisms under "Not verified" are planned and untested.
 
 ## Context
 
 The OpenAPI contract belongs to `counthouse-api` and changes there by pull request, before any code
-that depends on it. It has not been added there yet. The web app has to be built, tested and
-demonstrated without waiting for a running API.
+that depends on it. When this decision was taken it had not been added there yet. The web app has
+to be built, tested and demonstrated without waiting for a running API.
 
 ## Decision
 
@@ -41,6 +42,3 @@ demonstrated without waiting for a running API.
 - Starting the mock server from `instrumentation.ts`, and typing its handlers from the schema.
 - State kept in memory on serverless hosting, where instances are short-lived and may be several.
   "Create a product, then see it in the list" has to be tested before anything depends on it.
-- The pinned copy and the generated types themselves: they wait for the contract to be added to
-  `counthouse-api`.
-- The CI check for generated types.
