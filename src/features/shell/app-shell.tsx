@@ -1,4 +1,4 @@
-import { Popover } from "@nicolassancho/storybook-core";
+import { Icon, Popover } from "@nicolassancho/storybook-core";
 import type { ReactNode } from "react";
 
 import { SkipLink } from "@/shared/skip-link";
@@ -24,7 +24,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => (
       <div className="flex min-w-0 flex-1 flex-col bg-neutral-50">
         <header className="flex h-14 items-center gap-2 border-b border-neutral-200 bg-surface px-4">
           <div className="md:hidden">
-            <Popover placement="drawer" trigger="Menu">
+            <Popover
+              placement="drawer"
+              trigger={
+                <>
+                  <Icon name="Menu" size="small" />
+                  Menu
+                </>
+              }
+            >
               <div className="px-2 pb-4">
                 <AppNav />
               </div>
