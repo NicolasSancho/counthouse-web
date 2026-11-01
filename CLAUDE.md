@@ -67,6 +67,10 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
 - `npm run contract:types` runs `openapi-typescript` with `--default-non-nullable false`. The flag
   is required: without it a schema default makes a request field required in the generated type.
   `src/server/api/schema.test-d.ts` makes `npm run typecheck` fail if it is dropped.
+- Each schema is also exported under its own name (`--root-types --root-types-no-schema-prefix`).
+  Import it with `import type { ProductDetail } from "@/server/api/schema"` instead of indexing
+  `components["schemas"]`. Shared responses and parameters are exported with a `Response` or
+  `Parameter` prefix.
 - CI fails when the copy differs from the contract at the pinned commit (`npm run contract:check`)
   or when the committed types are out of date.
 - Update the pinned copy after the contract change has merged in `counthouse-api`.
