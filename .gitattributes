@@ -1,0 +1,5 @@
+# Generated from the pinned API contract: collapsed in GitHub diffs and left out of language stats.
+src/server/api/schema.d.ts linguist-generated=true
+
+# Compared byte for byte with the pinned commit, so Git must never convert its line endings.
+contract/openapi.yaml -text

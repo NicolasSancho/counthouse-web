@@ -1,0 +1,1123 @@
+openapi: 3.1.0
+info:
+  title: Counthouse API
+  version: 0.3.0
+  license:
+    name: MIT
+    identifier: MIT
+  description: |
+    Inventory backoffice API. This version covers phase 1 (auth and the session) and phase 2 (catalog:
+    products and variants). Later phases add their endpoints through their own contract PRs: stock
+    adjustments (phase 3) and tenant theme editing (phase 4). Orders are an optional extension and are
+    not part of this contract.
+
+    Conventions:
+    - JSON with camelCase fields. Ids are UUIDs. Timestamps are ISO 8601 in UTC.
+    - Money is an integer number of cents in the tenant's currency. Tenants use currencies with
+      two decimals only.
+    - The tenant comes only from the access token, never from a path, query or body field.
+      A resource of another tenant is answered with 404.
+    - Lists are paginated with `page` (from 0), `size` and `sort=field,direction`. Rows with equal
+      sort values are ordered by `id`, so a page boundary never repeats or skips a row.
+    - Request bodies reject unknown fields with 400.
+    - PATCH follows JSON Merge Patch (RFC 7396): send only the fields to change; a field that is
+      absent is left alone. No field accepts `null` in this version.
+    - A product and its variants share one `version`. Every change to the product or to one of its
+      variants increases it, and every such request sends the `version` the client read. A stale
+      version is answered with 409 `VERSION_CONFLICT`. Stock changes (phase 3) do not increase it.
+    - Errors use Problem Details (RFC 9457) with a stable `code`, a `traceId` and, where it helps,
+      `errors` that name the fields involved. Any operation can also answer 500 with the same shape.
+    - The role in the access token can be stale until the token expires (15 minutes).
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: Auth
+    description: Sign in, refresh, sign out and the current user with its tenant.
+  - name: Products
+    description: Products and their variants.
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      operationId: login
+      summary: Exchange credentials for tokens
+      description: >-
+        An email belongs to exactly one user across all tenants, so the request needs no tenant.
+        The access token carries `tenantId` and `role` and lives 15 minutes. The refresh token is
+        opaque, is stored hashed by the API and lives 7 days.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+            examples:
+              admin:
+                summary: An admin signs in
+                value:
+                  email: ana@counthouse.example
+                  password: demo-password
+      responses:
+        "200":
+          description: Tokens.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TokenResponse"
+              examples:
+                signedIn:
+                  value:
+                    accessToken: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIuLi4ifQ.c2lnbmF0dXJl
+                    refreshToken: 8f3b1c9e5a7d4b2f9c0e6a1d3b5f7c92
+                    tokenType: Bearer
+                    expiresIn: 900
+                    refreshExpiresIn: 604800
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/InvalidCredentials"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: refreshToken
+      summary: Exchange a refresh token for a new access token
+      description: >-
+        The refresh token is not rotated: it stays valid until it expires or is revoked by
+        `logout`, so parallel refreshes from the web server are safe.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+            examples:
+              refresh:
+                value:
+                  refreshToken: 8f3b1c9e5a7d4b2f9c0e6a1d3b5f7c92
+      responses:
+        "200":
+          description: A new access token.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AccessTokenResponse"
+              examples:
+                refreshed:
+                  value:
+                    accessToken: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIuLi4ifQ.bmV3U2lnbg
+                    tokenType: Bearer
+                    expiresIn: 900
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      operationId: logout
+      summary: Revoke a refresh token
+      description: >-
+        Needs no access token, so a user whose access token expired can still sign out. It answers
+        204 even when the refresh token is unknown or already revoked.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshRequest"
+            examples:
+              logout:
+                value:
+                  refreshToken: 8f3b1c9e5a7d4b2f9c0e6a1d3b5f7c92
+      responses:
+        "204":
+          description: The refresh token is revoked.
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      summary: The authenticated user and its tenant
+      description: >-
+        One call gives the web app everything its shell needs: who is signed in, their role, the
+        tenant name and currency, and the tenant's theme.
+      responses:
+        "200":
+          description: The current user and tenant.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Me"
+              examples:
+                adminWithTheme:
+                  summary: An admin of a tenant that chose a theme
+                  value:
+                    user:
+                      id: 3f2c8a54-1b6d-4e0a-9c57-2d8e1f4a6b70
+                      tenantId: 0b9d6e21-7c3a-4f58-8a14-5e2c9d7b1a36
+                      email: ana@counthouse.example
+                      name: Ana Torres
+                      role: ADMIN
+                    tenant:
+                      id: 0b9d6e21-7c3a-4f58-8a14-5e2c9d7b1a36
+                      slug: northwind
+                      name: Northwind Footwear
+                      defaultCurrency: EUR
+                      theme:
+                        primary: "#1f5f4a"
+                        logoUrl: https://cdn.counthouse.example/northwind/logo.svg
+                operatorDefaultTheme:
+                  summary: An operator of a tenant that has not chosen a theme
+                  value:
+                    user:
+                      id: 9a41d7e2-6c08-4b35-8e1f-3d5b7a2c9e60
+                      tenantId: 7a1e4c90-2d6b-4b83-a5f0-9c3e8d1b2a47
+                      email: omar@counthouse.example
+                      name: Omar Reyes
+                      role: OPERATOR
+                    tenant:
+                      id: 7a1e4c90-2d6b-4b83-a5f0-9c3e8d1b2a47
+                      slug: acme
+                      name: Acme
+                      defaultCurrency: USD
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /products:
+    get:
+      tags: [Products]
+      operationId: listProducts
+      summary: List products
+      description: >-
+        Any role. Archived products are left out unless `status=ARCHIVED` is passed. `q` matches
+        the product name or the SKU of any of its variants.
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Size"
+        - name: sort
+          in: query
+          description: >-
+            Field and direction, `field,asc` or `field,desc`. Allowed fields: `createdAt`,
+            `updatedAt`, `name`, `basePriceCents`.
+          schema:
+            type: string
+            default: createdAt,desc
+            pattern: "^(createdAt|updatedAt|name|basePriceCents),(asc|desc)$"
+        - name: q
+          in: query
+          description: >-
+            Case-insensitive match on any part of the product name or of a variant SKU.
+          schema:
+            type: string
+            maxLength: 100
+        - name: status
+          in: query
+          schema:
+            $ref: "#/components/schemas/ProductStatus"
+      responses:
+        "200":
+          description: A page of products.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductPage"
+              examples:
+                firstPage:
+                  value:
+                    items:
+                      - id: 5d1b7a30-8e42-4c19-b6f3-0a9c2e4d8b15
+                        name: Trail Runner 2
+                        basePriceCents: 12900
+                        status: ACTIVE
+                        variantCount: 6
+                        totalStock: 84
+                        createdAt: "2026-09-14T09:30:00Z"
+                        updatedAt: "2026-10-20T16:02:11Z"
+                      - id: a4e92c60-3f17-4d85-9b0e-6c1d7f3a2e48
+                        name: City Loafer
+                        basePriceCents: 9900
+                        status: DRAFT
+                        variantCount: 1
+                        totalStock: 0
+                        createdAt: "2026-10-02T11:12:45Z"
+                        updatedAt: "2026-10-02T11:12:45Z"
+                    page: 0
+                    size: 20
+                    totalItems: 2
+                    totalPages: 1
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      tags: [Products]
+      operationId: createProduct
+      summary: Create a product with its first variants
+      description: >-
+        Admin only. The product starts as `DRAFT`. `optionNames` names what tells the variants
+        apart and is fixed from now on. Every variant gives one value per name, in the same order.
+        Every product has at least one variant: a product without options has an empty
+        `optionNames` and exactly one variant with empty `optionValues`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+            examples:
+              withVariants:
+                summary: Two colors by two sizes
+                value:
+                  name: Trail Runner 2
+                  description: Lightweight trail shoe with a rock plate.
+                  basePriceCents: 12900
+                  optionNames: [Color, Size]
+                  variants:
+                    - sku: TR2-BLK-42
+                      optionValues: [Black, "42"]
+                      initialStock: 18
+                    - sku: TR2-BLK-43
+                      optionValues: [Black, "43"]
+                      initialStock: 12
+                    - sku: TR2-BLU-42
+                      optionValues: [Blue, "42"]
+                    - sku: TR2-BLU-43
+                      optionValues: [Blue, "43"]
+              noOptions:
+                summary: A product without options
+                value:
+                  name: Shoe Care Kit
+                  basePriceCents: 2400
+                  optionNames: []
+                  variants:
+                    - sku: KIT-001
+                      optionValues: []
+                      initialStock: 40
+      responses:
+        "201":
+          description: The created product.
+          headers:
+            Location:
+              description: URL of the new product.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+              examples:
+                created:
+                  $ref: "#/components/examples/ProductDetailExample"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /products/{id}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    get:
+      tags: [Products]
+      operationId: getProduct
+      summary: A product with its variants
+      description: >-
+        Any role. The variants include archived ones, each with its `status`.
+      responses:
+        "200":
+          description: The product.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+              examples:
+                detail:
+                  $ref: "#/components/examples/ProductDetailExample"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Products]
+      operationId: updateProduct
+      summary: Update or archive a product
+      description: >-
+        Admin only. `optionNames` cannot change. Setting `status` to `ARCHIVED` archives the
+        product; products are never deleted. Setting it to `ACTIVE` needs at least one active
+        variant, otherwise 409 `NO_ACTIVE_VARIANT`. An archived product can be set back to
+        `ACTIVE` or `DRAFT`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProductRequest"
+            examples:
+              rename:
+                value:
+                  version: 3
+                  name: Trail Runner 2 GTX
+              activate:
+                value:
+                  version: 3
+                  status: ACTIVE
+      responses:
+        "200":
+          description: The updated product, with its new `version`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+              examples:
+                updated:
+                  $ref: "#/components/examples/ProductDetailExample"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /products/{id}/variants:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+    post:
+      tags: [Products]
+      operationId: addVariants
+      summary: Add variants to a product
+      description: >-
+        Admin only. Adds up to 100 variants in one call; all of them are created or none is. Each
+        gives one value per product option name, in order; a different count is answered with 400.
+        A combination that repeats an existing one, or repeats within the request, is answered
+        with 409 `DUPLICATE_COMBINATION`, and a SKU that is already used with 409 `SKU_TAKEN`.
+        Both name the offending variants in `errors`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddVariantsRequest"
+            examples:
+              addSize:
+                value:
+                  version: 3
+                  variants:
+                    - sku: TR2-BLK-44
+                      optionValues: [Black, "44"]
+                    - sku: TR2-BLU-44
+                      optionValues: [Blue, "44"]
+      responses:
+        "200":
+          description: The product with all its variants and its new `version`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+              examples:
+                updated:
+                  $ref: "#/components/examples/ProductDetailExample"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /products/{id}/variants/{variantId}:
+    parameters:
+      - $ref: "#/components/parameters/Id"
+      - $ref: "#/components/parameters/VariantId"
+    patch:
+      tags: [Products]
+      operationId: updateVariant
+      summary: Update or archive a variant
+      description: >-
+        Admin only. `optionValues` cannot change: archive the variant and add a new one. Archiving
+        the last active variant of an `ACTIVE` product is answered with 409 `NO_ACTIVE_VARIANT`.
+        The request carries the product `version`, which this change increases. Stock is not
+        edited here: it changes through stock adjustments (phase 3).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVariantRequest"
+            examples:
+              sku:
+                value:
+                  version: 4
+                  sku: TR2-BLK-42-B
+              archive:
+                value:
+                  version: 4
+                  status: ARCHIVED
+      responses:
+        "200":
+          description: The product with its variants and its new `version`.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductDetail"
+              examples:
+                updated:
+                  $ref: "#/components/examples/ProductDetailExample"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    VariantId:
+      name: variantId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Page:
+      name: page
+      in: query
+      description: Zero-based page index.
+      schema:
+        type: integer
+        minimum: 0
+        default: 0
+    Size:
+      name: size
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 20
+
+  examples:
+    ProductDetailExample:
+      value:
+        id: 5d1b7a30-8e42-4c19-b6f3-0a9c2e4d8b15
+        name: Trail Runner 2
+        description: Lightweight trail shoe with a rock plate.
+        basePriceCents: 12900
+        status: DRAFT
+        version: 4
+        optionNames: [Color, Size]
+        variants:
+          - id: c8a31f72-4d59-4b0e-a3c6-1e7f9b2d5a84
+            productId: 5d1b7a30-8e42-4c19-b6f3-0a9c2e4d8b15
+            sku: TR2-BLK-42
+            optionValues: [Black, "42"]
+            stockOnHand: 18
+            status: ACTIVE
+          - id: e2b60d19-7a3c-4f85-9d41-8c5a0b3f7e26
+            productId: 5d1b7a30-8e42-4c19-b6f3-0a9c2e4d8b15
+            sku: TR2-BLU-42
+            optionValues: [Blue, "42"]
+            stockOnHand: 0
+            status: ACTIVE
+        createdAt: "2026-09-14T09:30:00Z"
+        updatedAt: "2026-10-20T16:02:11Z"
+
+  responses:
+    BadRequest:
+      description: >-
+        Validation failed, the body is malformed or has unknown fields. `errors` lists the
+        fields, each with a `code` the web app turns into its own wording.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            validation:
+              value:
+                type: about:blank
+                title: Validation failed
+                status: 400
+                code: VALIDATION_FAILED
+                detail: 2 fields are invalid.
+                traceId: 4bf92f3577b34da6a3ce929d0e0e4736
+                errors:
+                  - field: name
+                    code: REQUIRED
+                    message: must not be blank
+                  - field: variants[0].sku
+                    code: INVALID_FORMAT
+                    message: must match "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    InvalidCredentials:
+      description: Wrong email or password.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            invalidCredentials:
+              value:
+                type: about:blank
+                title: Invalid credentials
+                status: 401
+                code: INVALID_CREDENTIALS
+                traceId: 9c1f6a0b2d7e4c38a5b1e0f3d2c7a864
+    Unauthorized:
+      description: Missing, invalid or expired token. `code` is `TOKEN_EXPIRED` or `TOKEN_INVALID`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            expired:
+              value:
+                type: about:blank
+                title: Token expired
+                status: 401
+                code: TOKEN_EXPIRED
+                traceId: 2e8d0c4b7a1f4396b5a8c3d1e0f7b265
+    Forbidden:
+      description: The caller's role is not allowed to do this.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            forbidden:
+              value:
+                type: about:blank
+                title: Forbidden
+                status: 403
+                code: FORBIDDEN
+                detail: This action needs the ADMIN role.
+                traceId: 6b3a9e1d5c8f4a27b0d4e2c7f1a93580
+    NotFound:
+      description: The resource does not exist, or belongs to another tenant.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            notFound:
+              value:
+                type: about:blank
+                title: Not found
+                status: 404
+                code: NOT_FOUND
+                traceId: 0d7c2f9a4e1b4863a5c8b3e6d1f27049
+    Conflict:
+      description: >-
+        A business rule or a version check failed. `code` tells them apart: `VERSION_CONFLICT`,
+        `SKU_TAKEN`, `DUPLICATE_COMBINATION` or `NO_ACTIVE_VARIANT`. `VERSION_CONFLICT` carries
+        `currentVersion`, and the other two name the offending variants in `errors`.
+      content:
+        application/problem+json:
+          schema:
+            $ref: "#/components/schemas/ProblemDetail"
+          examples:
+            staleVersion:
+              value:
+                type: about:blank
+                title: The product changed since you read it
+                status: 409
+                code: VERSION_CONFLICT
+                detail: Expected version 3 but the current version is 4.
+                currentVersion: 4
+                traceId: 5a2e8b0c7d1f4936a4b8c3e1d0f72659
+            skuTaken:
+              value:
+                type: about:blank
+                title: SKU already in use
+                status: 409
+                code: SKU_TAKEN
+                detail: One or more SKUs are used by another variant.
+                traceId: 8f1c3d6a2b9e4075a1d4c8e3b0f62597
+                errors:
+                  - field: variants[1].sku
+                    code: SKU_TAKEN
+                    message: TR2-BLK-43 is used by another variant.
+            duplicateCombination:
+              value:
+                type: about:blank
+                title: Duplicate combination
+                status: 409
+                code: DUPLICATE_COMBINATION
+                detail: Two variants have the same option values.
+                traceId: 3c9a7e1b5d2f4806b4a1c8d3e0f79562
+                errors:
+                  - field: variants[2].optionValues
+                    code: DUPLICATE_COMBINATION
+                    message: Black / 42 already exists.
+
+  schemas:
+    ErrorCode:
+      type: string
+      description: Stable identifier the client switches on.
+      enum:
+        - VALIDATION_FAILED
+        - INVALID_CREDENTIALS
+        - TOKEN_EXPIRED
+        - TOKEN_INVALID
+        - FORBIDDEN
+        - NOT_FOUND
+        - VERSION_CONFLICT
+        - SKU_TAKEN
+        - DUPLICATE_COMBINATION
+        - NO_ACTIVE_VARIANT
+        - INTERNAL_ERROR
+
+    ProblemDetail:
+      type: object
+      description: Problem Details (RFC 9457) with a machine-readable `code`, a trace id and field errors.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          description: URI that identifies the problem type, or `about:blank`.
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
+        code:
+          $ref: "#/components/schemas/ErrorCode"
+        traceId:
+          type: string
+          description: Identifies this request in the API's logs. The web app shows it on error screens.
+        currentVersion:
+          type: integer
+          format: int64
+          description: Present on `VERSION_CONFLICT`. The version the product has now.
+        errors:
+          type: array
+          description: The fields involved, present on validation failures and on 409s that name variants.
+          items:
+            $ref: "#/components/schemas/FieldError"
+
+    FieldErrorCode:
+      type: string
+      description: Stable identifier the client turns into its own wording.
+      enum:
+        - REQUIRED
+        - TOO_SHORT
+        - TOO_LONG
+        - OUT_OF_RANGE
+        - INVALID_FORMAT
+        - INVALID_VALUE
+        - SKU_TAKEN
+        - DUPLICATE_COMBINATION
+
+    FieldError:
+      type: object
+      required: [field, code, message]
+      properties:
+        field:
+          type: string
+          description: Path of the field in the request body, such as `name` or `variants[0].sku`.
+        code:
+          $ref: "#/components/schemas/FieldErrorCode"
+        message:
+          type: string
+          description: For logs and developers. The web app does not show it.
+
+    LoginRequest:
+      type: object
+      additionalProperties: false
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+          minLength: 1
+
+    RefreshRequest:
+      type: object
+      additionalProperties: false
+      required: [refreshToken]
+      properties:
+        refreshToken:
+          type: string
+
+    TokenResponse:
+      type: object
+      required: [accessToken, refreshToken, tokenType, expiresIn, refreshExpiresIn]
+      properties:
+        accessToken:
+          type: string
+        refreshToken:
+          type: string
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          description: Lifetime of the access token, in seconds.
+        refreshExpiresIn:
+          type: integer
+          description: Lifetime of the refresh token, in seconds.
+
+    AccessTokenResponse:
+      type: object
+      required: [accessToken, tokenType, expiresIn]
+      properties:
+        accessToken:
+          type: string
+        tokenType:
+          type: string
+          enum: [Bearer]
+        expiresIn:
+          type: integer
+          description: Lifetime of the access token, in seconds.
+
+    Role:
+      type: string
+      enum: [ADMIN, OPERATOR]
+
+    User:
+      type: object
+      required: [id, tenantId, email, name, role]
+      properties:
+        id:
+          type: string
+          format: uuid
+        tenantId:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          $ref: "#/components/schemas/Role"
+
+    Me:
+      type: object
+      required: [user, tenant]
+      properties:
+        user:
+          $ref: "#/components/schemas/User"
+        tenant:
+          $ref: "#/components/schemas/Tenant"
+
+    Tenant:
+      type: object
+      required: [id, slug, name, defaultCurrency]
+      properties:
+        id:
+          type: string
+          format: uuid
+        slug:
+          type: string
+        name:
+          type: string
+        defaultCurrency:
+          type: string
+          description: ISO 4217 code of a currency with two decimals.
+          pattern: "^[A-Z]{3}$"
+        theme:
+          $ref: "#/components/schemas/ThemeSeed"
+
+    ThemeSeed:
+      type: object
+      description: >-
+        The two choices a tenant makes. Absent from the tenant means the default theme. The API
+        validates the shape only; the web app decides how to apply it.
+      properties:
+        primary:
+          type: string
+          pattern: "^#[0-9a-fA-F]{6}$"
+        logoUrl:
+          type: string
+          format: uri
+          pattern: "^https://"
+          description: A link the backoffice renders as a plain image. The API does not fetch it.
+
+    ProductStatus:
+      type: string
+      enum: [DRAFT, ACTIVE, ARCHIVED]
+
+    VariantStatus:
+      type: string
+      enum: [ACTIVE, ARCHIVED]
+
+    OptionNames:
+      type: array
+      description: >-
+        What tells the variants of a product apart, in order, such as `["Color", "Size"]`. Up to
+        3 names, different without regard to case. Empty for a product without options. Fixed when
+        the product is created.
+      maxItems: 3
+      items:
+        type: string
+        minLength: 1
+        maxLength: 30
+
+    OptionValues:
+      type: array
+      description: >-
+        The variant's value for each option name, in the same order and the same count, such as
+        `["Black", "42"]`. Empty for a product without options.
+      items:
+        type: string
+        minLength: 1
+        maxLength: 50
+
+    Sku:
+      type: string
+      description: Unique per tenant, compared without regard to case.
+      minLength: 1
+      maxLength: 64
+      pattern: "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+
+    ProductSummary:
+      type: object
+      required:
+        [id, name, basePriceCents, status, variantCount, totalStock, createdAt, updatedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        basePriceCents:
+          type: integer
+          format: int64
+          minimum: 0
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+        variantCount:
+          type: integer
+          minimum: 0
+          description: Active variants.
+        totalStock:
+          type: integer
+          minimum: 0
+          description: Units on hand across the active variants.
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProductPage:
+      type: object
+      required: [items, page, size, totalItems, totalPages]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProductSummary"
+        page:
+          type: integer
+        size:
+          type: integer
+        totalItems:
+          type: integer
+          format: int64
+        totalPages:
+          type: integer
+
+    ProductDetail:
+      type: object
+      required:
+        [
+          id,
+          name,
+          description,
+          basePriceCents,
+          status,
+          version,
+          optionNames,
+          variants,
+          createdAt,
+          updatedAt,
+        ]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        basePriceCents:
+          type: integer
+          format: int64
+          minimum: 0
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+        version:
+          type: integer
+          format: int64
+          description: >-
+            Increases on every change to the product or to one of its variants, and when variants
+            are added. Stock changes do not increase it.
+        optionNames:
+          $ref: "#/components/schemas/OptionNames"
+        variants:
+          type: array
+          items:
+            $ref: "#/components/schemas/Variant"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Variant:
+      type: object
+      required: [id, productId, sku, optionValues, stockOnHand, status]
+      properties:
+        id:
+          type: string
+          format: uuid
+        productId:
+          type: string
+          format: uuid
+        sku:
+          $ref: "#/components/schemas/Sku"
+        optionValues:
+          $ref: "#/components/schemas/OptionValues"
+        stockOnHand:
+          type: integer
+          minimum: 0
+          description: Read only. Changes through stock adjustments (phase 3).
+        status:
+          $ref: "#/components/schemas/VariantStatus"
+
+    VariantInput:
+      type: object
+      additionalProperties: false
+      required: [sku, optionValues]
+      properties:
+        sku:
+          $ref: "#/components/schemas/Sku"
+        optionValues:
+          $ref: "#/components/schemas/OptionValues"
+        initialStock:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Units on hand at creation. Phase 3 records them as a receipt movement.
+
+    CreateProductRequest:
+      type: object
+      additionalProperties: false
+      required: [name, basePriceCents, optionNames, variants]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+          default: ""
+        basePriceCents:
+          type: integer
+          format: int64
+          minimum: 0
+        optionNames:
+          $ref: "#/components/schemas/OptionNames"
+        variants:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/VariantInput"
+
+    UpdateProductRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version:
+          type: integer
+          format: int64
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          maxLength: 5000
+        basePriceCents:
+          type: integer
+          format: int64
+          minimum: 0
+        status:
+          $ref: "#/components/schemas/ProductStatus"
+
+    AddVariantsRequest:
+      type: object
+      additionalProperties: false
+      required: [version, variants]
+      properties:
+        version:
+          type: integer
+          format: int64
+          description: The product version that was read.
+        variants:
+          type: array
+          minItems: 1
+          maxItems: 100
+          items:
+            $ref: "#/components/schemas/VariantInput"
+
+    UpdateVariantRequest:
+      type: object
+      additionalProperties: false
+      required: [version]
+      properties:
+        version:
+          type: integer
+          format: int64
+          description: The product version that was read.
+        sku:
+          $ref: "#/components/schemas/Sku"
+        status:
+          $ref: "#/components/schemas/VariantStatus"

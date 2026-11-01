@@ -23,15 +23,17 @@ The app runs at http://localhost:3000.
 
 ## Scripts
 
-| Command                | Purpose                                         |
-| ---------------------- | ----------------------------------------------- |
-| `npm run dev`          | Development server                              |
-| `npm run build`        | Production build                                |
-| `npm run typecheck`    | Generate route types and check TypeScript       |
-| `npm run lint`         | ESLint, with type-checked rules                 |
-| `npm run format:check` | Prettier check (`npm run format` fixes)         |
-| `npm test`             | Vitest                                          |
-| `npm run test:e2e`     | Playwright and axe against the production build |
+| Command                  | Purpose                                               |
+| ------------------------ | ----------------------------------------------------- |
+| `npm run dev`            | Development server                                    |
+| `npm run build`          | Production build                                      |
+| `npm run typecheck`      | Generate route types, check TypeScript and type tests |
+| `npm run lint`           | ESLint, with type-checked rules                       |
+| `npm run format:check`   | Prettier check (`npm run format` fixes)               |
+| `npm test`               | Vitest                                                |
+| `npm run test:e2e`       | Playwright and axe against the production build       |
+| `npm run contract:check` | Compare the API contract copy with its pinned commit  |
+| `npm run contract:types` | Generate the API types from the contract copy         |
 
 `npm run test:e2e` needs `npm run build` first. CI runs every script above on each pull request.
 
@@ -43,6 +45,8 @@ src/features/<f>   one folder per area of the product
 src/server         server-only code: API client, sessions, data access, environment
 src/shared         UI and pure helpers used by several features
 e2e/               end-to-end tests
+contract/          pinned copy of the API contract (see contract/README.md)
+scripts/           repository scripts run by npm
 ```
 
 Dependencies point one way, `app` to `features` to `shared` and `server`, and a feature does not
