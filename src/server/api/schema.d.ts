@@ -456,6 +456,43 @@ export interface components {
     headers: never;
     pathItems: never;
 }
+export type ErrorCode = components['schemas']['ErrorCode'];
+export type ProblemDetail = components['schemas']['ProblemDetail'];
+export type FieldErrorCode = components['schemas']['FieldErrorCode'];
+export type FieldError = components['schemas']['FieldError'];
+export type LoginRequest = components['schemas']['LoginRequest'];
+export type RefreshRequest = components['schemas']['RefreshRequest'];
+export type TokenResponse = components['schemas']['TokenResponse'];
+export type AccessTokenResponse = components['schemas']['AccessTokenResponse'];
+export type Role = components['schemas']['Role'];
+export type User = components['schemas']['User'];
+export type Me = components['schemas']['Me'];
+export type Tenant = components['schemas']['Tenant'];
+export type ThemeSeed = components['schemas']['ThemeSeed'];
+export type ProductStatus = components['schemas']['ProductStatus'];
+export type VariantStatus = components['schemas']['VariantStatus'];
+export type OptionNames = components['schemas']['OptionNames'];
+export type OptionValues = components['schemas']['OptionValues'];
+export type Sku = components['schemas']['Sku'];
+export type ProductSummary = components['schemas']['ProductSummary'];
+export type ProductPage = components['schemas']['ProductPage'];
+export type ProductDetail = components['schemas']['ProductDetail'];
+export type Variant = components['schemas']['Variant'];
+export type VariantInput = components['schemas']['VariantInput'];
+export type CreateProductRequest = components['schemas']['CreateProductRequest'];
+export type UpdateProductRequest = components['schemas']['UpdateProductRequest'];
+export type AddVariantsRequest = components['schemas']['AddVariantsRequest'];
+export type UpdateVariantRequest = components['schemas']['UpdateVariantRequest'];
+export type ResponseBadRequest = components['responses']['BadRequest'];
+export type ResponseInvalidCredentials = components['responses']['InvalidCredentials'];
+export type ResponseUnauthorized = components['responses']['Unauthorized'];
+export type ResponseForbidden = components['responses']['Forbidden'];
+export type ResponseNotFound = components['responses']['NotFound'];
+export type ResponseConflict = components['responses']['Conflict'];
+export type ParameterId = components['parameters']['Id'];
+export type ParameterVariantId = components['parameters']['VariantId'];
+export type ParameterPage = components['parameters']['Page'];
+export type ParameterSize = components['parameters']['Size'];
 export type $defs = Record<string, never>;
 export interface operations {
     login: {

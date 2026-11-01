@@ -18,9 +18,14 @@ the copy itself.
 CI runs both on every pull request. It fails when the copy differs from the pinned commit, and when
 the committed types differ from what `contract:types` generates.
 
-The types are generated with `--default-non-nullable false`. Without it, a request field with a
-schema default becomes required in the generated type. `src/server/api/schema.test-d.ts` makes
-`npm run typecheck` fail if the flag is dropped.
+The script passes these flags to `openapi-typescript`, and `src/server/api/schema.test-d.ts` makes
+`npm run typecheck` fail if any of them is dropped:
+
+- `--default-non-nullable false`: without it, a request field with a schema default becomes
+  required in the generated type.
+- `--root-types --root-types-no-schema-prefix`: each schema is also exported under its own name,
+  such as `User` or `ProductDetail`. Shared responses and parameters keep a `Response` or
+  `Parameter` prefix, such as `ResponseNotFound`.
 
 ## Updating the pin
 
