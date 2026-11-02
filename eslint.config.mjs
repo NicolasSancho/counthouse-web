@@ -25,7 +25,8 @@ const eslintConfig = defineConfig([
     extends: [tseslint.configs.disableTypeChecked],
   },
   // Architecture: dependencies point one way, app -> features -> shared and server, and a feature
-  // does not import another feature. See "Structure" in CLAUDE.md.
+  // does not import another feature. The mock (src/server/mock) is reached only from src/server,
+  // through the API client. See "Structure" in CLAUDE.md.
   {
     files: ["src/**/*.{ts,tsx}"],
     plugins: { boundaries },
@@ -33,6 +34,7 @@ const eslintConfig = defineConfig([
       "boundaries/elements": [
         { type: "app", pattern: "src/app" },
         { type: "feature", pattern: "src/features/*", capture: ["feature"] },
+        { type: "mock", pattern: "src/server/mock" },
         { type: "server", pattern: "src/server" },
         { type: "shared", pattern: "src/shared" },
       ],
@@ -45,11 +47,15 @@ const eslintConfig = defineConfig([
           policies: [
             {
               from: { element: { type: "shared" } },
-              disallow: { to: { element: { type: ["app", "feature", "server"] } } },
+              disallow: { to: { element: { type: ["app", "feature", "server", "mock"] } } },
             },
             {
-              from: { element: { type: "server" } },
+              from: { element: { type: ["server", "mock"] } },
               disallow: { to: { element: { type: ["app", "feature"] } } },
+            },
+            {
+              from: { element: { type: ["app", "feature"] } },
+              disallow: { to: { element: { type: "mock" } } },
             },
             {
               from: { element: { type: "feature" } },

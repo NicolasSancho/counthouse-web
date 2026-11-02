@@ -21,6 +21,21 @@ npm run dev
 
 The app runs at http://localhost:3000.
 
+### Environment variables
+
+| Variable       | Purpose                                                                            |
+| -------------- | ---------------------------------------------------------------------------------- |
+| `API_MODE`     | `mock` (default) answers API calls inside the app; `live` uses the API             |
+| `API_BASE_URL` | Base URL of the API, such as `http://localhost:8080/api/v1`; required in live mode |
+
+### How the mock works
+
+In mock mode the server's API client sends each request to MSW request handlers in the same
+process instead of the network, so the app runs without the API. The handlers are typed per
+status from the pinned contract, the tests check their responses against it, and they serve
+public demo accounts with simulated data. Only the
+auth operations are mocked so far; see [ADR 0005](docs/adr/0005-contract-pin-and-mock-server.md).
+
 ## Scripts
 
 | Command                  | Purpose                                               |
