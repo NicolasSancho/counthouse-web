@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { createApiClient } from "@/server/api/client";
+import { contractChecks } from "@/server/mock/contract-checks";
 import { createMockFetch, MOCK_BASE_URL } from "@/server/mock/fetch";
 import { issue } from "@/server/mock/tokens";
 
-// Every request goes through the real typed client and the mock `fetch`, as in the app.
+// Every request goes through the real typed client and the mock `fetch`, as in the app, and every
+// response is checked against the contract (status, content type, body schema and formats).
 const api = createApiClient({ mode: "mock" }, { mockLatencyMs: 0 });
+api.use(contractChecks());
 
 const ANA = { email: "ana@counthouse.example", password: "demo-password" };
 const ANA_ID = "3f2c8a54-1b6d-4e0a-9c57-2d8e1f4a6b70";
