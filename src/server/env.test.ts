@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { parseApiConfig } from "@/server/env";
+import { parseApiConfig, parseApiMode } from "@/server/env";
 
 describe("parseApiConfig", () => {
   it("defaults to mock mode when API_MODE is unset", () => {
@@ -35,6 +35,22 @@ describe("parseApiConfig", () => {
   it("throws on an unknown mode", () => {
     expect(() => parseApiConfig({ API_MODE: "staging" })).toThrow(
       'API_MODE must be "mock" or "live", got "staging"'
+    );
+  });
+});
+
+describe("parseApiMode", () => {
+  it.each([{}, { API_MODE: "" }])("defaults to mock: %o", (env) => {
+    expect(parseApiMode(env)).toBe("mock");
+  });
+
+  it("reads live mode without checking the base URL", () => {
+    expect(parseApiMode({ API_MODE: "live" })).toBe("live");
+  });
+
+  it("throws on an unknown mode", () => {
+    expect(() => parseApiMode({ API_MODE: "Live" })).toThrow(
+      'API_MODE must be "mock" or "live", got "Live"'
     );
   });
 });
