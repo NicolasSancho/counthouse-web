@@ -1,0 +1,57 @@
+import "server-only";
+
+import { cookies } from "next/headers";
+
+import type { TokenResponse } from "@/server/api/schema";
+
+/**
+ * The session is the API's two tokens, each in its own cookie. The `__Host-` prefix makes the
+ * browser refuse the cookie unless it is `secure`, has `path=/` and no `domain`, so a subdomain
+ * cannot set or overwrite it. Browsers treat `http://localhost` as secure, so it works in
+ * development too. Only this module reads or writes these cookies.
+ */
+export const ACCESS_COOKIE = "__Host-ch_access";
+export const REFRESH_COOKIE = "__Host-ch_refresh";
+
+/**
+ * The access cookie expires this many seconds before the token, so a request never reaches the
+ * API with a token that expires on the way.
+ */
+const EXPIRY_MARGIN_SECONDS = 30;
+
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: true,
+  sameSite: "lax",
+  path: "/",
+} as const;
+
+export async function writeSession(tokens: TokenResponse): Promise<void> {
+  const store = await cookies();
+  store.set(ACCESS_COOKIE, tokens.accessToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: Math.max(tokens.expiresIn - EXPIRY_MARGIN_SECONDS, 0),
+  });
+  store.set(REFRESH_COOKIE, tokens.refreshToken, {
+    ...COOKIE_OPTIONS,
+    maxAge: tokens.refreshExpiresIn,
+  });
+}
+
+export async function readAccessToken(): Promise<string | undefined> {
+  return (await cookies()).get(ACCESS_COOKIE)?.value;
+}
+
+export async function readRefreshToken(): Promise<string | undefined> {
+  return (await cookies()).get(REFRESH_COOKIE)?.value;
+}
+
+/**
+ * Deletes both cookies. The options are passed in full: `cookies().delete(name)` sends the
+ * deletion without `secure`, and the browser ignores it for a `__Host-` cookie.
+ */
+export async function clearSession(): Promise<void> {
+  const store = await cookies();
+  store.delete({ name: ACCESS_COOKIE, ...COOKIE_OPTIONS });
+  store.delete({ name: REFRESH_COOKIE, ...COOKIE_OPTIONS });
+}

@@ -13,8 +13,11 @@ const MAIN_ID = "main";
  *
  * The navigation renders twice, once per placement. Only one is displayed at a time: the side
  * column is hidden below `md`, and the drawer is a closed popover until the menu button opens it.
+ *
+ * `userSlot` fills the right of the top bar. The route's layout passes it, because a feature does
+ * not import another feature.
  */
-export const AppShell = ({ children }: { children: ReactNode }) => (
+export const AppShell = ({ children, userSlot }: { children: ReactNode; userSlot: ReactNode }) => (
   <>
     <SkipLink targetId={MAIN_ID} />
     <div className="flex flex-1 flex-col md:grid md:grid-cols-[15rem_1fr]">
@@ -38,6 +41,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => (
               </div>
             </Popover>
           </div>
+          <div className="ml-auto">{userSlot}</div>
         </header>
         <main id={MAIN_ID} tabIndex={-1} className="flex-1 p-4 focus:outline-hidden sm:p-6">
           {children}
