@@ -1,19 +1,13 @@
-import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { expectNoAxeViolations } from "./axe";
+import { signedInState } from "./session";
 
 // The default brand in src/app/globals.css, as the browser reports it.
 const brandColor = { light: "rgb(107, 76, 174)", dark: "rgb(159, 130, 233)" };
 const narrow = { width: 390, height: 700 };
 
-async function expectNoAxeViolations(page: Page) {
-  const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-    .analyze();
-
-  expect(results.violations).toEqual([]);
-  // A run that checked nothing would also have no violations.
-  expect(results.passes.length).toBeGreaterThan(5);
-}
+test.use({ storageState: signedInState });
 
 test("the home page redirects to products", async ({ page }) => {
   await page.goto("/");
