@@ -37,7 +37,8 @@ request, so run them locally before opening one.
 - No `any`. `noUncheckedIndexedAccess` is on, so handle `undefined` instead of asserting.
 - Links use typed routes, so a broken route fails `typecheck`.
 - Secrets stay out of the repo. `.env*` is ignored.
-- Tooling changes go in their own pull request.
+- Repo-wide tooling changes (linters, formatters, build, CI) go in their own pull request. A test
+  helper that checks the code of the same pull request may ship with it.
 
 ## Testing
 
@@ -75,11 +76,25 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
   or when the committed types are out of date.
 - Update the pinned copy after the contract change has merged in `counthouse-api`.
 
-Planned and not set up yet:
+## API client and mock
 
-- Call the API with `openapi-fetch`, from `src/server` only.
-- `API_MODE=mock|live` is set per deployment. In mock mode the app answers its own API calls from a
-  mock server built from the contract. There is no fallback from live to mock at runtime.
+- Call the API only through `getApiClient()` (`src/server/api/client.ts`), an `openapi-fetch`
+  client typed from the schema. Runtime modules in `src/server` import `server-only`.
+- `API_MODE=mock|live` is set per deployment, `mock` when unset; live needs `API_BASE_URL`
+  (`src/server/env.ts`). There is no fallback from live to mock at runtime.
+- In mock mode the client's `fetch` answers from MSW handlers in `src/server/mock`, inside the
+  server process; the global `fetch` is not patched. A request with no handler throws. Add a
+  handler when a feature first calls an operation. Write it with `createOpenApiHttp<paths>()`
+  from `openapi-msw` and answer with `response(status)`, so the status and body are checked
+  against the contract at compile time.
+- Only `src/server` may import `src/server/mock` (ESLint). Expose anything a page needs from the
+  mock, such as the demo accounts, through a function in `src/server`.
+- Demo data (`src/server/mock/demo-data.ts`) is public and read-only. Mock tokens are not signed;
+  never decode a token in the web app.
+- Test handlers through `createApiClient({ mode: "mock" }, { mockLatencyMs: 0 })` with
+  `api.use(contractChecks())`, as in `src/server/mock/auth-handlers.test.ts`: every response is
+  then checked against `contract/openapi.yaml` (status, content type, schema and formats). Vitest
+  maps `server-only` to its empty module.
 
 ## UI library
 
