@@ -28,6 +28,9 @@ The app runs at http://localhost:3000.
 | `API_MODE`     | `mock` (default) answers API calls inside the app; `live` uses the API             |
 | `API_BASE_URL` | Base URL of the API, such as `http://localhost:8080/api/v1`; required in live mode |
 
+The sign-in page is built ahead of time, so it shows the demo accounts according to the
+`API_MODE` of the build. Rebuild (or redeploy) after changing it.
+
 ### How the mock works
 
 In mock mode the server's API client sends each request to MSW request handlers in the same
@@ -35,6 +38,14 @@ process instead of the network, so the app runs without the API. The handlers ar
 status from the pinned contract, the tests check their responses against it, and they serve
 public demo accounts with simulated data. Only the
 auth operations are mocked so far; see [ADR 0005](docs/adr/0005-contract-pin-and-mock-server.md).
+
+### Signing in
+
+In mock mode the sign-in page has an "Enter the demo" button, which signs in as Ana Torres, Admin
+of Northwind Footwear. "Other demo accounts" lists the other three. Every demo account uses the
+password `demo-password`. The session is two `httpOnly` cookies and ends 30 seconds before the 15-minute access token
+expires; see
+[ADR 0004](docs/adr/0004-authentication.md).
 
 ## Scripts
 

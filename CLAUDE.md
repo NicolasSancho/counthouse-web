@@ -96,6 +96,27 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
   then checked against `contract/openapi.yaml` (status, content type, schema and formats). Vitest
   maps `server-only` to its empty module.
 
+## Session
+
+- Only `src/server/session.ts` touches the session cookies. Delete them with their full options
+  (as `clearSession()` does): `cookies().delete(name)` leaves a `__Host-` cookie in place.
+- The data access layer is the gate. Functions that need the user call `requireAccessToken()` or
+  `getCurrentUser()` (`src/server/auth.ts`) and pass `authorization(token)` on each API call;
+  never attach the token to the shared client. Every Server Action that needs the user reads the
+  session itself.
+- `src/proxy.ts` only redirects from the cookies. Layouts do not re-render on client navigation,
+  so never put an access check in a layout.
+- Render anything that reads the session behind `Suspense`, as the top bar does.
+- Sign-out is a plain form `POST` to `/logout`, a Route Handler that answers 303, so the browser
+  loads `/login` as a new document. A Server Action redirect is a client navigation, and Next.js
+  keeps the previous screen in the DOM, hidden. The handler repeats the Server Action origin check.
+- The sign-in pages are prerendered, so their demo block follows the `API_MODE` of the build.
+  Changing the mode needs a new build (on Vercel, a new deployment). Code that acts on the mode at
+  request time calls `readApiMode()` there.
+- End-to-end tests that need a session use `test.use({ storageState: signedInState })`
+  (`e2e/session.ts`); the `setup` project signs in once. A second server of the same build runs
+  in live mode with the API unreachable, for failure tests.
+
 ## UI library
 
 Shared components come from
