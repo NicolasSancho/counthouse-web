@@ -33,9 +33,22 @@ The script passes these flags to `openapi-typescript`, and `src/server/api/schem
 2. Set `config.contractCommit` in `package.json` to the new commit on its `main`.
 3. Copy `contract/openapi.yaml` from that commit, then run `npm run contract:check`.
 4. Run `npm run contract:types` and fix the type errors it causes.
+5. Remove the entries of "Known gaps" that the new contract settles.
 
 A newer contract on `counthouse-api` does not fail CI here: the app moves to it on purpose, in its
 own pull request.
+
+## Known gaps
+
+Places where contract 0.3.0 leaves a choice open, so the mock had to pick one. Candidates for
+0.3.1:
+
+- An unknown body field gets 400 `VALIDATION_FAILED`, but no `FieldErrorCode` fits it, so the mock
+  sends no `errors` entry.
+- The contract does not say whether emails are compared without regard to case. The mock matches
+  them exactly.
+- An empty password is answered with `REQUIRED`, although the schema's `minLength: 1` could also
+  mean `TOO_SHORT`, and a password of spaces only is accepted as present.
 
 ## Trade-offs
 

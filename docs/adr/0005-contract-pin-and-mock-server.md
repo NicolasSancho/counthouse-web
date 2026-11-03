@@ -2,11 +2,6 @@
 
 Status: Accepted
 
-Implementation: the pinned copy, the generated types and their CI checks are in place (contract
-0.3.0, see [`contract/README.md`](../../contract/README.md)). The typed client and the mock for the
-four auth operations (login, refresh, logout, `GET /auth/me`) are in `src/server`. The product
-operations have no mock yet, and nothing calls the client yet.
-
 ## Context
 
 The OpenAPI contract belongs to `counthouse-api` and changes there by pull request, before any code
@@ -73,17 +68,6 @@ Rejected:
 - MSW, `openapi-msw` and `openapi-fetch` are runtime dependencies, because the demo runs the mock in
   production. A live deployment also loads them, since the client imports the mock statically.
 - Rejected: writing the backend first, and hand-written API types.
-
-## Contract gaps
-
-Candidates for contract 0.3.1, where the mock had to choose:
-
-- An unknown body field gets 400 `VALIDATION_FAILED`, but no `FieldErrorCode` fits it, so the mock
-  sends no `errors` entry.
-- The contract does not say whether emails are compared without regard to case. The mock matches
-  them exactly.
-- An empty password is answered with `REQUIRED`, although the schema's `minLength: 1` could also
-  mean `TOO_SHORT`, and a password of spaces only is accepted as present.
 
 ## Not verified
 

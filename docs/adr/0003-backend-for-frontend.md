@@ -1,8 +1,6 @@
 # 0003 Backend for frontend
 
-Status: Accepted
-
-Implementation: not started. This record describes the decision, and the code does not follow it yet.
+Status: Accepted. Where the access token is refreshed is reopened in 0004.
 
 ## Context
 
