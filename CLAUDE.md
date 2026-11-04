@@ -108,6 +108,9 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
   `getCurrentUser()` (`src/server/auth.ts`) and pass `authorization(token)` on each API call;
   never attach the token to the shared client. Every Server Action that needs the user reads the
   session itself.
+- A `GET` of `/login` with both cookies redirects to `/products`. The form posts to the same path,
+  so other methods pass. `/login/expired` always passes: a token the API refuses lands there with
+  both cookies set, so redirecting from it would loop.
 - `src/proxy.ts` only redirects from the cookies. Layouts do not re-render on client navigation,
   so never put an access check in a layout.
 - Render anything that reads the session behind `Suspense`, as the top bar does.

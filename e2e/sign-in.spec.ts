@@ -10,6 +10,7 @@ import {
 } from "./session";
 
 const ANA = "ana@counthouse.example";
+const IRIS = "iris@counthouse.example";
 
 /**
  * The wrapper around the form message: it takes focus, the alert inside it is announced. Next.js
@@ -60,6 +61,26 @@ test.describe("signed out", () => {
     await expect(page).toHaveURL(/\/login\/expired$/);
     await expect(page.getByText("Your session expired. Sign in again.")).toBeVisible();
   });
+
+  test("a refused token opened at the sign-in page stops at the expired notice", async ({
+    page,
+  }) => {
+    await page
+      .context()
+      .addCookies([cookie(ACCESS_COOKIE, "not-a-token"), cookie(REFRESH_COOKIE, "any")]);
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/login\/expired$/);
+    await expect(page.getByText("Your session expired. Sign in again.")).toBeVisible();
+  });
+
+  for (const name of [ACCESS_COOKIE, REFRESH_COOKIE]) {
+    test(`${name} alone shows the sign-in page`, async ({ page }) => {
+      await page.context().addCookies([cookie(name, "any")]);
+      await page.goto("/login");
+      await expect(page).toHaveURL(/\/login$/);
+      await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+    });
+  }
 });
 
 test.describe("demo sign-in", () => {
@@ -143,8 +164,30 @@ test("a failed demo sign-in shows the error page", async ({ page }) => {
   expect(await sessionCookies(page)).toEqual([]);
 });
 
+test("a form left open signs in over the session of another tab", async ({ page, context }) => {
+  await page.goto("/login");
+
+  const otherTab = await context.newPage();
+  await otherTab.goto("/login");
+  await otherTab.getByRole("button", { name: "Enter the demo" }).click();
+  await expect(otherTab).toHaveURL(/\/products$/);
+
+  await signInWith(page, IRIS, "demo-password");
+  await expect(page).toHaveURL(/\/products$/);
+  // The screen alone does not prove it: a reload shows the new cookies reached the browser.
+  await page.reload();
+  await expect(page.getByRole("banner")).toContainText("Iris Chen");
+});
+
 test.describe("signed in", () => {
   test.use({ storageState: signedInState });
+
+  test("the sign-in page redirects to the products page", async ({ page }) => {
+    const response = await page.goto("/login");
+    expect(response?.request().redirectedFrom()).not.toBeNull();
+    await expect(page).toHaveURL(/\/products$/);
+    await expect(page.getByRole("banner")).toContainText("Ana Torres");
+  });
 
   test("sign out clears both cookies and leaves nothing of the user in the page", async ({
     page,
@@ -210,6 +253,14 @@ test.describe("without JavaScript", () => {
     await signInWith(page, ANA, "wrong");
     await expect(page.getByText("Email or password is wrong.")).toBeVisible();
     await expect(page.getByLabel("Email")).toHaveValue(ANA);
+  });
+
+  test("a form left open still answers once session cookies exist", async ({ page }) => {
+    await page.goto("/login");
+    await page.context().addCookies([cookie(ACCESS_COOKIE, "any"), cookie(REFRESH_COOKIE, "any")]);
+    await signInWith(page, ANA, "wrong");
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByText("Email or password is wrong.")).toBeVisible();
   });
 });
 
