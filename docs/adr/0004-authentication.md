@@ -34,7 +34,8 @@ Sessions and refresh tokens (proposed):
   an optimistic check from the cookie.
 - State changes go through Server Actions. Next.js allows them only with `POST` and compares the
   `Origin` header with the `Host` header, which together with `SameSite=Lax` is the CSRF position.
-- Sign-out calls the API, which revokes the refresh token.
+- Sign-out calls the API, which revokes the refresh token. Signing in over an existing session
+  revokes the refresh token it replaces.
 - The refresh token is not rotated. Several requests can arrive with the same expired access token,
   for example when routes are prefetched, and each one would try to refresh. An in-process lock does
   not span serverless instances. Rotation with reuse detection would treat the second refresh as a
@@ -95,8 +96,8 @@ accepted or superseded.
 - The mock server has to implement sign-in for the demo accounts.
 - A cross-site script cannot read the tokens.
 - The role in the access token can be out of date for up to 15 minutes after it changes.
-- A stolen refresh token stays valid until it expires or the user signs out. It exists only in an
-  `httpOnly` cookie handled by the Next.js server.
+- A stolen refresh token stays valid until it expires, or until the browser it came from signs out
+  or signs in again. It exists only in an `httpOnly` cookie handled by the Next.js server.
 - Rejected: rotating refresh tokens with reuse detection, for the reason above.
 
 ## Not verified
