@@ -6,7 +6,7 @@ setup("sign in with the demo and save the session", async ({ page }) => {
   await page.goto("/login");
   await page.getByRole("button", { name: "Enter the demo" }).click();
   await expect(page).toHaveURL(/\/products$/);
-  await expect(page.getByRole("banner")).toContainText("Ana Torres");
+  await expect(page.getByRole("button", { name: "Ana Torres" })).toBeVisible();
 
   const now = Date.now() / 1000;
   const cookies = await sessionCookies(page);

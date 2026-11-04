@@ -115,7 +115,12 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
   both cookies set, so redirecting from it would loop.
 - `src/proxy.ts` only redirects from the cookies. Layouts do not re-render on client navigation,
   so never put an access check in a layout.
-- Render anything that reads the session behind `Suspense`, as the top bar does.
+- Render anything that reads the session behind `Suspense`, as the user menu does. `UserSlot`
+  (`src/shared/user-slot.tsx`) adds a boundary with a quiet fallback, for the trigger name and the
+  tenant tile.
+- Sign out lives in the user menu, outside the boundaries that read the user, so it works while
+  the user loads, when loading fails and without JavaScript. Retry reloads the document: one
+  failed `/auth/me` shows in several boundaries, and `retry()` resets only its own.
 - Sign-out is a plain form `POST` to `/logout`, a Route Handler that answers 303, so the browser
   loads `/login` as a new document. A Server Action redirect is a client navigation, and Next.js
   keeps the previous screen in the DOM, hidden. The handler repeats the Server Action origin check.
