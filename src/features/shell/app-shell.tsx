@@ -2,10 +2,21 @@ import { Icon, Popover } from "@nicolassancho/storybook-core";
 import type { ReactNode } from "react";
 
 import { SkipLink } from "@/shared/skip-link";
+import { UserSlot } from "@/shared/user-slot";
 
 import { AppNav } from "./app-nav";
+import { TenantTile } from "./tenant-tile";
 
 const MAIN_ID = "main";
+
+const navHeader = (
+  <div>
+    <p className="px-3 text-sm font-semibold text-neutral-900">Counthouse</p>
+    <UserSlot>
+      <TenantTile />
+    </UserSlot>
+  </div>
+);
 
 /**
  * The signed-in layout: the navigation in a side column from the `md` breakpoint (940px) up, and in
@@ -22,7 +33,7 @@ export const AppShell = ({ children, userSlot }: { children: ReactNode; userSlot
     <SkipLink targetId={MAIN_ID} />
     <div className="flex flex-1 flex-col md:grid md:grid-cols-[15rem_1fr]">
       <div className="hidden border-r border-neutral-200 bg-surface px-2 py-4 md:block">
-        <AppNav />
+        <AppNav header={navHeader} />
       </div>
       <div className="flex min-w-0 flex-1 flex-col bg-neutral-50">
         <header className="flex h-14 items-center gap-2 border-b border-neutral-200 bg-surface px-4">
@@ -37,7 +48,7 @@ export const AppShell = ({ children, userSlot }: { children: ReactNode; userSlot
               }
             >
               <div className="px-2 pb-4">
-                <AppNav />
+                <AppNav header={navHeader} />
               </div>
             </Popover>
           </div>

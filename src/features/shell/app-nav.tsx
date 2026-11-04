@@ -3,6 +3,7 @@
 import { SidebarNav, type SidebarNavItem } from "@nicolassancho/storybook-core";
 import type { Route } from "next";
 import { usePathname } from "next/navigation";
+import type { ReactNode } from "react";
 
 import { NavLink } from "@/shared/nav-link";
 
@@ -20,14 +21,16 @@ const navItems: NavItem[] = [{ href: "/products", label: "Products", icon: "Pack
  * With Cache Components, `usePathname` suspends on a route with a dynamic param that
  * `generateStaticParams` does not cover, and the build fails unless a `Suspense` boundary wraps
  * this component. Every route is static today, so there is none yet.
+ *
+ * `header` comes from the shell, because it reads the tenant on the server.
  */
-export const AppNav = () => {
+export const AppNav = ({ header }: { header: ReactNode }) => {
   const pathname = usePathname();
 
   return (
     <SidebarNav
       LinkComponent={NavLink}
-      header={<p className="px-3 text-sm font-semibold text-neutral-900">Counthouse</p>}
+      header={header}
       items={navItems.map((item) => ({
         ...item,
         current: isCurrentPath(pathname, item.href),
