@@ -53,8 +53,8 @@ Sessions and refresh tokens (proposed):
   `openapi-fetch` middleware that reads `cookies()`, which would attach the token to every call
   made through the client.
 - `src/proxy.ts` redirects from the cookies alone: no refresh cookie to `/login`, a refresh cookie
-  without an access cookie to `/login/expired`. It lets the two sign-in pages through, so a refused
-  token cannot loop. Server Action requests are redirected like any other: the browser replays the
+  without an access cookie to `/login/expired`, and a `GET` of `/login` with both cookies to
+  `/products`. It always lets `/login/expired` through, so a refused token cannot loop. Server Action requests are redirected like any other: the browser replays the
   action's `POST` on the sign-in page, and each action that needs the user reads the session
   itself.
 - The data access layer is the gate (`src/server/auth.ts`). The signed-in layout only shows the
