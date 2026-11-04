@@ -2,8 +2,8 @@
 
 Status: Accepted
 
-Implementation: not started. The approach was measured in a scratch copy of the app (Next.js 16.4,
-Cache Components, a production build) and is not built here yet.
+The approach was measured in a scratch copy of the app (Next.js 16.4, Cache Components, a production
+build).
 
 ## Context
 

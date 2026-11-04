@@ -57,6 +57,10 @@ request, so run them locally before opening one.
 - Changes go through a pull request with green CI. Pull requests are squash-merged, so the title
   becomes the commit on `main`. A workflow checks it.
 
+## Decision records
+
+Decision records follow the rules in [docs/adr/README.md](docs/adr/README.md).
+
 ## API contract
 
 The OpenAPI contract belongs to `counthouse-api` and changes there by pull request, before any
