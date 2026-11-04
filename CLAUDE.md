@@ -108,6 +108,8 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
   `getCurrentUser()` (`src/server/auth.ts`) and pass `authorization(token)` on each API call;
   never attach the token to the shared client. Every Server Action that needs the user reads the
   session itself.
+- Signing in over an existing session revokes the old refresh token in `after()`, once the new
+  session is written, so the call cannot delay or fail the sign-in.
 - A `GET` of `/login` with both cookies redirects to `/products`. The form posts to the same path,
   so other methods pass. `/login/expired` always passes: a token the API refuses lands there with
   both cookies set, so redirecting from it would loop.

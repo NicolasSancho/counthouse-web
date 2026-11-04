@@ -1,6 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { cache } from "react";
 
 import { getApiClient } from "@/server/api/client";
@@ -49,7 +50,12 @@ export type SignInResult =
   | { ok: false; reason: "fields"; errors: FieldError[] }
   | { ok: false; reason: "failed"; traceId?: string };
 
-/** Signs in with the API and stores the tokens in the session cookies. */
+/**
+ * Signs in with the API and stores the tokens in the session cookies. A refresh token already in
+ * the cookies is about to be overwritten, so it is revoked too. That happens only after a
+ * successful sign-in, so a wrong password leaves the session alone, and in `after()`, so a slow or
+ * failing API cannot hold up the sign-in.
+ */
 export async function signIn(email: string, password: string): Promise<SignInResult> {
   let result;
   try {
@@ -62,7 +68,11 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 
   const { data, error, response } = result;
   if (data) {
+    const previousToken = await readRefreshToken();
     await writeSession(data);
+    if (previousToken && previousToken !== data.refreshToken) {
+      after(() => revokeRefreshToken(previousToken));
+    }
     return { ok: true };
   }
 
@@ -81,15 +91,18 @@ export async function signIn(email: string, password: string): Promise<SignInRes
  */
 export async function signOut(): Promise<void> {
   const refreshToken = await readRefreshToken();
-  if (refreshToken) {
-    try {
-      const { error, response } = await getApiClient().POST("/auth/logout", {
-        body: { refreshToken },
-      });
-      if (!response.ok) console.error(`Sign-out answered ${response.status}.`, error);
-    } catch (cause) {
-      console.error("Sign-out request failed.", cause);
-    }
-  }
+  if (refreshToken) await revokeRefreshToken(refreshToken);
   await clearSession();
+}
+
+/** Logs a failure instead of throwing: the caller's sign-in or sign-out goes ahead either way. */
+async function revokeRefreshToken(refreshToken: string): Promise<void> {
+  try {
+    const { error, response } = await getApiClient().POST("/auth/logout", {
+      body: { refreshToken },
+    });
+    if (!response.ok) console.error(`Revoking the token answered ${response.status}.`, error);
+  } catch (cause) {
+    console.error("Revoking the token failed.", cause);
+  }
 }
