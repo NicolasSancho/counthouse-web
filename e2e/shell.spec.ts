@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./axe";
 import { signedInState } from "./session";
@@ -6,6 +6,10 @@ import { signedInState } from "./session";
 // The default brand in src/app/globals.css, as the browser reports it.
 const brandColor = { light: "rgb(107, 76, 174)", dark: "rgb(159, 130, 233)" };
 const narrow = { width: 390, height: 700 };
+
+// The tile renders twice, in the sidebar and in the drawer: only one is displayed at a time.
+const tile = (page: Page) =>
+  page.getByText("Northwind Footwear", { exact: true }).filter({ visible: true });
 
 test.use({ storageState: signedInState });
 
@@ -40,9 +44,77 @@ test("the skip link is the first focusable element and moves focus to main", asy
   await expect(page.getByRole("main")).toBeFocused();
 });
 
+test.describe("user menu", () => {
+  test("shows the user and closes with Esc, returning focus", async ({ page }) => {
+    await page.goto("/products");
+    const trigger = page.getByRole("button", { name: "Ana Torres · Admin" });
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByText("ana@counthouse.example")).toBeVisible();
+    await expect(page.getByText("Admin · Northwind Footwear")).toBeVisible();
+
+    await page.keyboard.press("Escape");
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+    await expect(trigger).toBeFocused();
+  });
+
+  test("closes when focus moves outside it", async ({ page }) => {
+    await page.goto("/products");
+    const trigger = page.getByRole("button", { name: "Ana Torres · Admin" });
+    await trigger.click();
+    await expect(trigger).toHaveAttribute("aria-expanded", "true");
+
+    await page.getByRole("link", { name: "Products" }).focus();
+    await expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  test("a long email wraps inside the panel", async ({ page }) => {
+    await page.goto("/products");
+    await page.getByRole("button", { name: "Ana Torres · Admin" }).click();
+    const email = page.getByText("ana@counthouse.example");
+    await expect(email).toBeVisible();
+
+    await email.evaluate(
+      (element) => (element.textContent = "alexandra.vanderbilt@northwindfootwear.example")
+    );
+    const panel = page.locator("[popover]:popover-open");
+    const overflow = await panel.evaluate((element) => element.scrollWidth - element.clientWidth);
+    expect(overflow).toBe(0);
+  });
+
+  test("a long name does not overflow a narrow screen", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/products");
+    const trigger = page.getByRole("button", { name: "Ana Torres", exact: true });
+    await expect(trigger).toBeVisible();
+
+    await trigger
+      .getByText("Ana Torres")
+      .evaluate((name) => (name.textContent = "Maximiliana Featherstonehaugh-Montgomery"));
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    expect(overflow).toBe(0);
+  });
+});
+
+test("the sidebar shows the tenant", async ({ page }) => {
+  await page.goto("/products");
+  await expect(tile(page)).toBeVisible();
+});
+
 for (const scheme of ["light", "dark"] as const) {
   test.describe(`${scheme} theme`, () => {
     test.use({ colorScheme: scheme });
+
+    test("the open user menu has no WCAG A or AA violations", async ({ page }) => {
+      await page.goto("/products");
+      await page.getByRole("button", { name: "Ana Torres · Admin" }).click();
+      await expect(page.getByText("ana@counthouse.example")).toBeVisible();
+      await expectNoAxeViolations(page);
+    });
 
     test("library components get their styles, the font and the brand", async ({ page }) => {
       await page.goto("/products");
@@ -98,6 +170,7 @@ test.describe("narrow layout", () => {
     await menu.click();
     await expect(menu).toHaveAttribute("aria-expanded", "true");
     await expect(link).toHaveAttribute("aria-current", "page");
+    await expect(tile(page)).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(link).toBeHidden();
     await expect(menu).toHaveAttribute("aria-expanded", "false");

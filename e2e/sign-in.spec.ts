@@ -88,7 +88,7 @@ test.describe("demo sign-in", () => {
     await page.goto("/login");
     await page.getByRole("button", { name: "Enter the demo" }).click();
     await expect(page).toHaveURL(/\/products$/);
-    await expect(page.getByRole("banner")).toContainText("Ana Torres · Admin");
+    await expect(page.getByRole("button", { name: "Ana Torres · Admin" })).toBeVisible();
 
     await page.goBack();
     await expect(page).not.toHaveURL(/\/login/);
@@ -100,7 +100,7 @@ test.describe("demo sign-in", () => {
       await page.getByText("Other demo accounts").click();
       await page.getByRole("button", { name: `Use ${name}` }).click();
       await expect(page).toHaveURL(/\/products$/);
-      await expect(page.getByRole("banner")).toContainText(name);
+      await expect(page.getByRole("button", { name: name })).toBeVisible();
     });
   }
 });
@@ -176,7 +176,7 @@ test("a form left open signs in over the session of another tab", async ({ page,
   await expect(page).toHaveURL(/\/products$/);
   // The screen alone does not prove it: a reload shows the new cookies reached the browser.
   await page.reload();
-  await expect(page.getByRole("banner")).toContainText("Iris Chen");
+  await expect(page.getByRole("button", { name: "Iris Chen" })).toBeVisible();
 });
 
 test.describe("signed in", () => {
@@ -186,14 +186,14 @@ test.describe("signed in", () => {
     const response = await page.goto("/login");
     expect(response?.request().redirectedFrom()).not.toBeNull();
     await expect(page).toHaveURL(/\/products$/);
-    await expect(page.getByRole("banner")).toContainText("Ana Torres");
+    await expect(page.getByRole("button", { name: "Ana Torres" })).toBeVisible();
   });
 
   test("sign out clears both cookies and leaves nothing of the user in the page", async ({
     page,
   }) => {
     await page.goto("/products");
-    await expect(page.getByRole("banner")).toContainText("Ana Torres");
+    await page.getByRole("button", { name: /Ana Torres/ }).click();
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
     expect(await sessionCookies(page)).toEqual([]);
@@ -212,9 +212,11 @@ test.describe("signed in", () => {
 
   test("sign out also works after the access cookie expired", async ({ page }) => {
     await page.goto("/products");
-    await expect(page.getByRole("banner")).toContainText("Ana Torres");
+    const trigger = page.getByRole("button", { name: /Ana Torres/ });
+    await expect(trigger).toBeVisible();
     await page.context().clearCookies({ name: ACCESS_COOKIE });
 
+    await trigger.click();
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
     expect(await sessionCookies(page)).toEqual([]);
@@ -223,10 +225,24 @@ test.describe("signed in", () => {
   test("a failure to load the user leaves the page usable", async ({ page }) => {
     // The saved session is for localhost, so it reaches the server whose API is down too.
     await page.goto(`${apiDownURL}/products`);
-    const banner = page.getByRole("banner");
-    await expect(banner).toContainText("Could not load your account.");
-    await expect(banner.getByRole("button", { name: "Retry" })).toBeVisible();
     await expect(page.getByRole("heading", { level: 1, name: "Products" })).toBeVisible();
+    await expect(page.getByText("Northwind Footwear")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Account" }).click();
+    await expect(page.getByText("Could not load your account.")).toBeVisible();
+    await page.getByRole("button", { name: "Sign out" }).click();
+    await expect(page).toHaveURL(/\/login$/);
+    expect(await sessionCookies(page)).toEqual([]);
+  });
+
+  test("retry reloads the document", async ({ page }) => {
+    await page.goto(`${apiDownURL}/products`);
+    await page.evaluate(() => document.documentElement.setAttribute("data-before-retry", ""));
+
+    await page.getByRole("button", { name: "Account" }).click();
+    await page.getByRole("button", { name: "Retry" }).click();
+    await expect(page.locator("[data-before-retry]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
   });
 });
 
@@ -243,6 +259,8 @@ test.describe("without JavaScript", () => {
   test("sign out works", async ({ page }) => {
     await page.goto("/login");
     await page.getByRole("button", { name: "Enter the demo" }).click();
+    // The name streams in with JavaScript, so the button keeps its fallback.
+    await page.getByRole("button", { name: "Account" }).click();
     await page.getByRole("button", { name: "Sign out" }).click();
     await expect(page).toHaveURL(/\/login$/);
     expect(await sessionCookies(page)).toEqual([]);
