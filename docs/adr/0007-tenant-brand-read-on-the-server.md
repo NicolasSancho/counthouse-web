@@ -1,13 +1,13 @@
 # 0007 Tenant brand read on the server
 
-Status: Proposed
+Status: Accepted
 
 Replaces part of [0006](0006-tenant-theme-injection.md): the `<head>` script, the attribute on
 `<html>` and the cookie readable by a script. Presets in the stylesheet and two tokens stay. Adds an
 exception to [0002](0002-cache-components.md), which has authenticated UI stream in behind `Suspense`.
 
 Measured in production builds of this app (Next.js 16.4, Cache Components), in Chromium, on a local
-server with the mock.
+server with the mock, and checked by hand on a Vercel preview in Chrome and Firefox.
 
 ## Context
 
@@ -47,8 +47,8 @@ for. Where it is read matters:
 
 ## Not verified
 
-- Deployment on Vercel, including the cost of having no prerendered shell there.
-- Browsers other than Chromium, and a screen reader.
+- The cost on Vercel of having no prerendered shell, which was not measured.
+- Safari and a screen reader.
 - The live API.
 - Why the root layout read loses the form state: the behavior was measured, its cause inside Next.js
   was not found.
