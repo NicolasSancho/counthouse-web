@@ -81,8 +81,9 @@ Renewing the access token:
   sends the redirect itself.
 - Safari with `secure` cookies on `http://localhost`.
 - Sign-in against the real API.
-- The refresh on Vercel: tested on a production build under `next start` only.
-- The refresh in Safari and Firefox.
+- On Vercel, whether the forwarded header or the internal cookie merge carries the new token to the
+  render. A preview deployment did renew the token after the access cookie was deleted.
+- The refresh in Safari. On a preview deployment it passed in Firefox, including sign-out.
 - That `after()` runs on Vercel. The Next.js documentation says it uses `waitUntil`, but the mock
   revokes nothing, so a run would show nothing.
 - A signed-in Server Action after expiry, in the app: none exists yet. It was tested on a throwaway
