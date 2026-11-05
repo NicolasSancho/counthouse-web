@@ -128,7 +128,8 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
 - The proxy redirects only `GET` and `HEAD`: a redirected Server Action `POST` fails on the page it
   is replayed on. It passes, and the action's own session read redirects.
 - Layouts do not re-render on client navigation, so never put an access check in a layout.
-- Render anything that reads the session behind `Suspense`, as the user menu does. `UserSlot`
+- Render anything that reads the session behind `Suspense`, as the user menu does. The brand cookie
+  in the `(app)` layout is the one exception (see "Brand"). `UserSlot`
   (`src/shared/user-slot.tsx`) adds a boundary with a quiet fallback, for the trigger name and the
   tenant tile.
 - Sign out lives in the user menu, outside the boundaries that read the user, so it works while
@@ -163,3 +164,14 @@ app-specific layout and screens live in this repo.
 - With `typedRoutes` on, Next.js rejects `next/link` passed directly as a library `LinkComponent`:
   its `href` is typed as a known route and the library passes a string. Pass `NavLink`
   (`src/shared/nav-link.tsx`) instead, and keep the hrefs typed as `Route` where they are defined.
+
+## Brand
+
+- The `(app)` layout reads the brand cookie with `readBrand()` (`src/server/brand.ts`) and sets
+  `data-brand` on the wrapper around the shell, so every signed-in route renders per request
+  ([ADR 0007](docs/adr/0007-tenant-brand-read-on-the-server.md)). Keep this read out of the root
+  layout: there it makes the sign-in pages dynamic and breaks a failed sign-in without JavaScript.
+- A preset needs both a row in `PRESETS` and a `[data-brand]` rule in `src/app/globals.css`. Check its
+  contrast in both themes and state it in the CSS comment.
+- The brand cookie is one of `SESSION_COOKIES`, so everything that ends a session deletes it. Sign-in
+  sets it from `/auth/me`, and deleting it uses the full options like the others.

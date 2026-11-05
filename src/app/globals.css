@@ -18,3 +18,12 @@
   --color-primary: light-dark(#6b4cae, #9f82e9);
   --color-primary-darker: light-dark(#583797, #b499ff);
 }
+
+/*
+  Tenant presets, set on the signed-in shell by src/app/(app)/layout.tsx. Measured the same way as
+  the default: 7.5:1 (light) and 6.1:1 (dark); the hover step 10.2:1 and 7.9:1.
+*/
+[data-brand="northwind"] {
+  --color-primary: light-dark(#1f5f4a, #62a088);
+  --color-primary-darker: light-dark(#024b38, #78b69e);
+}

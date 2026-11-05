@@ -20,7 +20,7 @@ const navItems: NavItem[] = [{ href: "/products", label: "Products", icon: "Pack
  *
  * With Cache Components, `usePathname` suspends on a route with a dynamic param that
  * `generateStaticParams` does not cover, and the build fails unless a `Suspense` boundary wraps
- * this component. Every route is static today, so there is none yet.
+ * this component. No route has a dynamic param today, so there is none yet.
  *
  * `header` comes from the shell, because it reads the tenant on the server.
  */

@@ -1,6 +1,6 @@
 # 0002 Cache Components
 
-Status: Accepted
+Status: Accepted; exception for the brand cookie in 0007
 
 ## Context
 

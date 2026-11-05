@@ -1,6 +1,6 @@
 # 0006 Tenant theme injection
 
-Status: Accepted
+Status: Accepted; script and `<html>` attribute superseded by 0007
 
 The approach was measured in a scratch copy of the app (Next.js 16.4, Cache Components, a production
 build).

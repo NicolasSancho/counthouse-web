@@ -253,7 +253,7 @@ test.describe("signed in", () => {
     await expect(page.getByRole("button", { name: "Ana Torres" })).toBeVisible();
   });
 
-  test("sign out clears both cookies and leaves nothing of the user in the page", async ({
+  test("sign out clears the session cookies and leaves nothing of the user in the page", async ({
     page,
   }) => {
     await page.goto("/products");

@@ -7,7 +7,14 @@ import { cache } from "react";
 import { getApiClient } from "@/server/api/client";
 import { readTraceId, toProblem } from "@/server/api/problem";
 import type { FieldError, Me } from "@/server/api/schema";
-import { clearSession, readAccessToken, readRefreshToken, writeSession } from "@/server/session";
+import { brandFor } from "@/server/brand";
+import {
+  clearSession,
+  readAccessToken,
+  readRefreshToken,
+  writeBrand,
+  writeSession,
+} from "@/server/session";
 
 /**
  * The data access layer for the session. Every call that needs the user passes the token
@@ -17,6 +24,9 @@ import { clearSession, readAccessToken, readRefreshToken, writeSession } from "@
 export function authorization(token: string) {
   return { Authorization: `Bearer ${token}` };
 }
+
+/** Sign-in waits for the brand, and colors are not worth holding it up for long. */
+const BRAND_TIMEOUT_MS = 3000;
 
 /**
  * The access token of this request. Without a session it redirects to `/login`. A refresh cookie
@@ -60,7 +70,8 @@ export type SignInResult =
  * Signs in with the API and stores the tokens in the session cookies. A refresh token already in
  * the cookies is about to be overwritten, so it is revoked too. That happens only after a
  * successful sign-in, so a wrong password leaves the session alone, and in `after()`, so a slow or
- * failing API cannot hold up the sign-in.
+ * failing API cannot hold up the sign-in. The login answer has no tenant, so the brand comes from
+ * `/auth/me`; without it the sign-in still succeeds, and the default brand shows.
  */
 export async function signIn(email: string, password: string): Promise<SignInResult> {
   let result;
@@ -76,6 +87,7 @@ export async function signIn(email: string, password: string): Promise<SignInRes
   if (data) {
     const previousToken = await readRefreshToken();
     await writeSession(data);
+    await writeBrand(await fetchBrand(data.accessToken), data.refreshExpiresIn);
     if (previousToken && previousToken !== data.refreshToken) {
       after(() => revokeRefreshToken(previousToken));
     }
@@ -92,13 +104,28 @@ export async function signIn(email: string, password: string): Promise<SignInRes
 }
 
 /**
- * Asks the API to revoke the refresh token, then deletes both cookies. The cookies are deleted
+ * Asks the API to revoke the refresh token, then deletes the session cookies. They are deleted
  * even when the API call fails, so the browser is signed out either way.
  */
 export async function signOut(): Promise<void> {
   const refreshToken = await readRefreshToken();
   if (refreshToken) await revokeRefreshToken(refreshToken);
   await clearSession();
+}
+
+/** The tenant's brand. Logs a failure instead of throwing: the sign-in goes ahead either way. */
+async function fetchBrand(accessToken: string): Promise<string | undefined> {
+  try {
+    const { data, error, response } = await getApiClient().GET("/auth/me", {
+      headers: authorization(accessToken),
+      signal: AbortSignal.timeout(BRAND_TIMEOUT_MS),
+    });
+    if (data) return brandFor(data.tenant.theme);
+    console.error(`Reading the brand answered ${response.status}.`, error);
+  } catch (cause) {
+    console.error("Reading the brand failed.", cause);
+  }
+  return undefined;
 }
 
 /** Logs a failure instead of throwing: the caller's sign-in or sign-out goes ahead either way. */

@@ -3,8 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 import { expectNoAxeViolations } from "./axe";
 import { signedInState } from "./session";
 
-// The default brand in src/app/globals.css, as the browser reports it.
-const brandColor = { light: "rgb(107, 76, 174)", dark: "rgb(159, 130, 233)" };
+// The signed-in user is Ana, of Northwind: its preset in src/app/globals.css, as the browser reports it.
+const brandColor = { light: "rgb(31, 95, 74)", dark: "rgb(98, 160, 136)" };
 const narrow = { width: 390, height: 700 };
 
 // The tile renders twice, in the sidebar and in the drawer: only one is displayed at a time.

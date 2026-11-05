@@ -3,14 +3,16 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getApiClient } from "@/server/api/client";
 import { requireAccessToken, signIn, signOut } from "@/server/auth";
-import { clearSession, readRefreshToken, writeSession } from "@/server/session";
+import { clearSession, readRefreshToken, writeBrand, writeSession } from "@/server/session";
 
 vi.mock("next/server", () => ({ after: vi.fn(), connection: vi.fn() }));
 vi.mock("@/server/api/client", () => ({ getApiClient: vi.fn() }));
 vi.mock("@/server/session", () => ({
   clearSession: vi.fn(),
   readAccessToken: vi.fn(),
+  readBrandCookie: vi.fn(),
   readRefreshToken: vi.fn(),
+  writeBrand: vi.fn(),
   writeSession: vi.fn(),
 }));
 
@@ -23,6 +25,7 @@ const tokens = {
 };
 
 const post = vi.fn();
+const get = vi.fn();
 
 /** The cookie as the session module would hold it: writing the session replaces it. */
 let refreshCookie: string | undefined;
@@ -36,8 +39,9 @@ const logoutCalls = () => post.mock.calls.filter(([path]) => path === "/auth/log
 beforeEach(() => {
   vi.clearAllMocks();
   post.mockReset();
+  get.mockReset();
   refreshCookie = undefined;
-  vi.mocked(getApiClient).mockReturnValue({ POST: post } as unknown as ReturnType<
+  vi.mocked(getApiClient).mockReturnValue({ GET: get, POST: post } as unknown as ReturnType<
     typeof getApiClient
   >);
   vi.mocked(readRefreshToken).mockImplementation(() => Promise.resolve(refreshCookie));
@@ -56,6 +60,52 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+const answer = (primary?: string) => ({
+  data: { tenant: { theme: primary ? { primary } : undefined } },
+  response: new Response(null, { status: 200 }),
+});
+
+describe("the brand at sign-in", () => {
+  const signInAsAna = () => signIn("ana@counthouse.example", "demo-password");
+
+  it("stores the tenant's preset for as long as the refresh token lasts", async () => {
+    get.mockResolvedValue(answer("#1f5f4a"));
+
+    await expect(signInAsAna()).resolves.toEqual({ ok: true });
+    expect(get.mock.calls[0]?.[1]).toMatchObject({
+      headers: { Authorization: "Bearer new-access" },
+    });
+    expect(writeBrand).toHaveBeenCalledExactlyOnceWith("northwind", tokens.refreshExpiresIn);
+  });
+
+  it("deletes the brand of a tenant with no preset", async () => {
+    get.mockResolvedValue(answer());
+
+    await expect(signInAsAna()).resolves.toEqual({ ok: true });
+    expect(writeBrand).toHaveBeenCalledExactlyOnceWith(undefined, tokens.refreshExpiresIn);
+  });
+
+  it("signs in without a brand, and logs, when the API refuses", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    get.mockResolvedValue({ error: {}, response: new Response(null, { status: 500 }) });
+
+    await expect(signInAsAna()).resolves.toEqual({ ok: true });
+    expect(writeBrand).toHaveBeenCalledExactlyOnceWith(undefined, tokens.refreshExpiresIn);
+    expect(log).toHaveBeenCalledOnce();
+  });
+
+  it("signs in without a brand, and logs, when the call fails or times out", async () => {
+    const log = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    get.mockRejectedValue(new DOMException("The operation timed out.", "TimeoutError"));
+
+    await expect(signInAsAna()).resolves.toEqual({ ok: true });
+    const options = get.mock.calls[0]?.[1] as { signal?: unknown } | undefined;
+    expect(options?.signal).toBeInstanceOf(AbortSignal);
+    expect(writeBrand).toHaveBeenCalledExactlyOnceWith(undefined, tokens.refreshExpiresIn);
+    expect(log).toHaveBeenCalledOnce();
+  });
 });
 
 describe("requireAccessToken", () => {
