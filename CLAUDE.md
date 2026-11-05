@@ -102,19 +102,32 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
 
 ## Session
 
-- Only `src/server/session.ts` touches the session cookies. Delete them with their full options
-  (as `clearSession()` does): `cookies().delete(name)` leaves a `__Host-` cookie in place.
+- Only `src/server/session.ts` defines the session cookies; the proxy sets what it exports. Delete
+  them with their full options (as `clearSession()` does): `cookies().delete(name)` leaves a
+  `__Host-` cookie in place.
+- The access cookie starts with a fingerprint of the refresh token, and one that does not match
+  counts as missing (`unwrapAccessToken()`). End-to-end tests that set it by hand use `boundAccess()`
+  from `e2e/session.ts`, or the proxy replaces it before anything reads it.
 - The data access layer is the gate. Functions that need the user call `requireAccessToken()` or
   `getCurrentUser()` (`src/server/auth.ts`) and pass `authorization(token)` on each API call;
-  never attach the token to the shared client. Every Server Action that needs the user reads the
-  session itself.
+  never attach the token to the shared client: an `openapi-fetch` middleware that reads `cookies()`
+  was rejected, because it would attach the token to every call made through the client. Every
+  Server Action that needs the user reads the session itself.
+- Session reads are cached per request with React `cache()` only. `use cache: private` (ADR 0002) is
+  not used yet: it needs a measured navigation and a test that switching accounts never shows the
+  previous user.
 - Signing in over an existing session revokes the old refresh token in `after()`, once the new
   session is written, so the call cannot delay or fail the sign-in.
-- A `GET` of `/login` with both cookies redirects to `/products`. The form posts to the same path,
-  so other methods pass. `/login/expired` always passes: a token the API refuses lands there with
-  both cookies set, so redirecting from it would loop.
-- `src/proxy.ts` only redirects from the cookies. Layouts do not re-render on client navigation,
-  so never put an access check in a layout.
+- A `GET` of `/login` with a refresh cookie redirects to `/products`, which handles every state of
+  the session. The form posts to the same path, so other methods pass. `/login/expired` always
+  passes: a token the API refuses lands there with both cookies set, so redirecting from it would
+  loop.
+- `src/proxy.ts` redirects from the cookies and renews an expired access token
+  (`src/server/refresh.ts`). A refresh the API refuses ends the session. Any other failure keeps the
+  refresh cookie, and `requireAccessToken()` throws, so the page shows the usual API failure.
+- The proxy redirects only `GET` and `HEAD`: a redirected Server Action `POST` fails on the page it
+  is replayed on. It passes, and the action's own session read redirects.
+- Layouts do not re-render on client navigation, so never put an access check in a layout.
 - Render anything that reads the session behind `Suspense`, as the user menu does. `UserSlot`
   (`src/shared/user-slot.tsx`) adds a boundary with a quiet fallback, for the trigger name and the
   tenant tile.

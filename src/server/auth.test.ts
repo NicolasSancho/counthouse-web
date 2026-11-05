@@ -1,11 +1,11 @@
-import { after } from "next/server";
+import { after, connection } from "next/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { getApiClient } from "@/server/api/client";
-import { signIn, signOut } from "@/server/auth";
+import { requireAccessToken, signIn, signOut } from "@/server/auth";
 import { clearSession, readRefreshToken, writeSession } from "@/server/session";
 
-vi.mock("next/server", () => ({ after: vi.fn() }));
+vi.mock("next/server", () => ({ after: vi.fn(), connection: vi.fn() }));
 vi.mock("@/server/api/client", () => ({ getApiClient: vi.fn() }));
 vi.mock("@/server/session", () => ({
   clearSession: vi.fn(),
@@ -56,6 +56,15 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.restoreAllMocks();
+});
+
+describe("requireAccessToken", () => {
+  it("keeps a failed refresh out of a prefetch", async () => {
+    refreshCookie = "old-refresh";
+
+    await expect(requireAccessToken()).rejects.toThrow("The session could not be renewed.");
+    expect(connection).toHaveBeenCalledOnce();
+  });
 });
 
 describe("signIn", () => {

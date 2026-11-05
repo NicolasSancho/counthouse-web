@@ -4,6 +4,7 @@ import { expectNoAxeViolations } from "./axe";
 import {
   ACCESS_COOKIE,
   apiDownURL,
+  boundAccess,
   REFRESH_COOKIE,
   sessionCookies,
   signedInState,
@@ -41,7 +42,7 @@ test.describe("signed out", () => {
     });
   }
 
-  test("a refresh cookie without an access cookie lands on the expired notice", async ({
+  test("a refresh the API refuses clears the session and lands on the expired notice", async ({
     page,
   }) => {
     await page.context().addCookies([cookie(REFRESH_COOKIE, "any")]);
@@ -49,6 +50,7 @@ test.describe("signed out", () => {
     expect(response?.request().redirectedFrom()).not.toBeNull();
     await expect(page).toHaveURL(/\/login\/expired$/);
     await expect(page.getByText("Your session expired. Sign in again.")).toBeVisible();
+    expect(await sessionCookies(page)).toEqual([]);
   });
 
   // On a page load the server sends this redirect itself (a meta refresh in the streamed page),
@@ -56,10 +58,15 @@ test.describe("signed out", () => {
   test("a token the API refuses lands on the expired notice", async ({ page }) => {
     await page
       .context()
-      .addCookies([cookie(ACCESS_COOKIE, "not-a-token"), cookie(REFRESH_COOKIE, "any")]);
+      .addCookies([
+        cookie(ACCESS_COOKIE, boundAccess("not-a-token", "any")),
+        cookie(REFRESH_COOKIE, "any"),
+      ]);
     await page.goto("/products");
     await expect(page).toHaveURL(/\/login\/expired$/);
     await expect(page.getByText("Your session expired. Sign in again.")).toBeVisible();
+    // Both cookies stay: the API refused the access token, and the refresh was never tried.
+    expect(await sessionCookies(page)).toHaveLength(2);
   });
 
   test("a refused token opened at the sign-in page stops at the expired notice", async ({
@@ -67,20 +74,77 @@ test.describe("signed out", () => {
   }) => {
     await page
       .context()
-      .addCookies([cookie(ACCESS_COOKIE, "not-a-token"), cookie(REFRESH_COOKIE, "any")]);
+      .addCookies([
+        cookie(ACCESS_COOKIE, boundAccess("not-a-token", "any")),
+        cookie(REFRESH_COOKIE, "any"),
+      ]);
     await page.goto("/login");
     await expect(page).toHaveURL(/\/login\/expired$/);
     await expect(page.getByText("Your session expired. Sign in again.")).toBeVisible();
+    expect(await sessionCookies(page)).toHaveLength(2);
   });
 
-  for (const name of [ACCESS_COOKIE, REFRESH_COOKIE]) {
-    test(`${name} alone shows the sign-in page`, async ({ page }) => {
-      await page.context().addCookies([cookie(name, "any")]);
-      await page.goto("/login");
-      await expect(page).toHaveURL(/\/login$/);
-      await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
-    });
-  }
+  test("an access cookie alone shows the sign-in page", async ({ page }) => {
+    await page.context().addCookies([cookie(ACCESS_COOKIE, "any")]);
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/login$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Sign in" })).toBeVisible();
+  });
+
+  test("a dead refresh cookie at the sign-in page lands on the expired notice", async ({
+    page,
+  }) => {
+    await page.context().addCookies([cookie(REFRESH_COOKIE, "any")]);
+    await page.goto("/login");
+    await expect(page).toHaveURL(/\/login\/expired$/);
+    expect(await sessionCookies(page)).toEqual([]);
+  });
+});
+
+test.describe("token refresh", () => {
+  test.use({ storageState: signedInState });
+
+  // Full page loads: a client navigation can be served without reaching the proxy.
+  test("an expired access cookie is renewed without leaving the page", async ({ page }) => {
+    await page.context().clearCookies({ name: ACCESS_COOKIE });
+    const [refreshBefore] = await sessionCookies(page);
+
+    await page.goto("/products");
+
+    await expect(page).toHaveURL(/\/products$/);
+    await expect(page.getByRole("button", { name: "Ana Torres · Admin" })).toBeVisible();
+    const cookies = await sessionCookies(page);
+    expect(cookies.find(({ name }) => name === ACCESS_COOKIE)).toBeDefined();
+    expect(cookies.find(({ name }) => name === REFRESH_COOKIE)?.value).toBe(refreshBefore?.value);
+  });
+
+  test("the API being down keeps the session", async ({ page }) => {
+    await page.context().clearCookies({ name: ACCESS_COOKIE });
+
+    await page.goto(`${apiDownURL}/products`);
+
+    await expect(page).toHaveURL(/\/products$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Products" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
+    const cookies = await sessionCookies(page);
+    expect(cookies.map(({ name }) => name)).toEqual([REFRESH_COOKIE]);
+  });
+
+  test("an access cookie from another session is not used", async ({ page, browser }) => {
+    const other = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const otherPage = await other.newPage();
+    await otherPage.goto("/login");
+    await signInWith(otherPage, IRIS, "demo-password");
+    await expect(otherPage).toHaveURL(/\/products$/);
+    const irisCookies = await sessionCookies(otherPage);
+    await other.close();
+
+    // Ana's access cookie stays, under Iris's refresh token: what a late refresh leaves behind.
+    await page.context().addCookies(irisCookies.filter(({ name }) => name === REFRESH_COOKIE));
+    await page.goto("/products");
+
+    await expect(page.getByRole("button", { name: "Iris Chen · Operator" })).toBeVisible();
+  });
 });
 
 test.describe("demo sign-in", () => {

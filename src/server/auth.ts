@@ -1,7 +1,7 @@
 import "server-only";
 
 import { redirect } from "next/navigation";
-import { after } from "next/server";
+import { after, connection } from "next/server";
 import { cache } from "react";
 
 import { getApiClient } from "@/server/api/client";
@@ -19,13 +19,19 @@ export function authorization(token: string) {
 }
 
 /**
- * The access token of this request. Without one it redirects: to `/login/expired` when a refresh
- * cookie shows there was a session, to `/login` otherwise. Cached per request with `cache()`.
+ * The access token of this request. Without a session it redirects to `/login`. A refresh cookie
+ * with no usable access token means the proxy could not reach the API, since a refused refresh
+ * clears the cookie: that throws for the nearest error boundary, as any API failure does, and Retry
+ * tries the refresh again. Cached per request with `cache()`.
  */
 export const requireAccessToken = cache(async (): Promise<string> => {
   const token = await readAccessToken();
   if (token) return token;
-  redirect((await readRefreshToken()) ? "/login/expired" : "/login");
+  if (!(await readRefreshToken())) redirect("/login");
+  // Stops a runtime prefetch here, so this failure is not cached: a later click would show it for
+  // up to 5 minutes after the API is back.
+  await connection();
+  throw new Error("The session could not be renewed.");
 });
 
 /**

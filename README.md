@@ -43,9 +43,8 @@ auth operations are mocked so far; see [ADR 0005](docs/adr/0005-contract-pin-and
 
 In mock mode the sign-in page has an "Enter the demo" button, which signs in as Ana Torres, Admin
 of Northwind Footwear. "Other demo accounts" lists the other three. Every demo account uses the
-password `demo-password`. The session is two `httpOnly` cookies and ends 30 seconds before the 15-minute access token
-expires; see
-[ADR 0004](docs/adr/0004-authentication.md).
+password `demo-password`. The session is two `httpOnly` cookies. The 15-minute access token is renewed for as long as the
+7-day refresh token is valid; see [ADR 0004](docs/adr/0004-authentication.md).
 
 ## Scripts
 
