@@ -40,7 +40,7 @@ async function UserDetails() {
  * The signed-in user's menu in the top bar. A disclosure, not an ARIA menu: the panel holds text and
  * one form.
  *
- * Only what reads the user streams. The button and Sign out are in the static shell, so Sign out
+ * Only what reads the user streams. The button and Sign out render without it, so Sign out
  * works while the user loads, when loading fails and without JavaScript, where the native
  * `popovertarget` opens the panel.
  */

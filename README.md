@@ -2,6 +2,8 @@
 
 Web app for Counthouse, a back office, built with Next.js.
 
+[Open the demo](https://counthouse-web.vercel.app). Demo mode, data is simulated.
+
 ## Stack
 
 Next.js 16 (App Router, Cache Components, typed routes), React 19, TypeScript (strict), Tailwind
@@ -43,7 +45,7 @@ auth operations are mocked so far; see [ADR 0005](docs/adr/0005-contract-pin-and
 
 In mock mode the sign-in page has an "Enter the demo" button, which signs in as Ana Torres, Admin
 of Northwind Footwear. "Other demo accounts" lists the other three. Every demo account uses the
-password `demo-password`. The session is two `httpOnly` cookies. The 15-minute access token is renewed for as long as the
+password `demo-password`. The session is two `httpOnly` cookies, and a third holds the tenant's brand. The 15-minute access token is renewed for as long as the
 7-day refresh token is valid; see [ADR 0004](docs/adr/0004-authentication.md).
 
 ## Scripts

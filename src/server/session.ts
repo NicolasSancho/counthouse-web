@@ -7,13 +7,15 @@ import { cookies } from "next/headers";
 import type { TokenResponse } from "@/server/api/schema";
 
 /**
- * The session is the API's two tokens, each in its own cookie. The `__Host-` prefix makes the
- * browser refuse the cookie unless it is `secure`, has `path=/` and no `domain`, so a subdomain
- * cannot set or overwrite it. Browsers treat `http://localhost` as secure, so it works in
+ * The session is the API's two tokens, each in its own cookie, and the tenant's brand in a third.
+ * The `__Host-` prefix makes the browser refuse a cookie unless it is `secure`, has `path=/` and no
+ * `domain`, so a subdomain cannot set or overwrite it. Browsers treat `http://localhost` as secure, so it works in
  * development too. Only this module defines these cookies.
  */
 export const ACCESS_COOKIE = "__Host-ch_access";
 export const REFRESH_COOKIE = "__Host-ch_refresh";
+/** Not a secret and not authoritative: it only chooses colors (src/server/brand.ts). */
+export const BRAND_COOKIE = "__Host-ch_brand";
 
 /**
  * The access cookie expires this many seconds before the token, so a request never reaches the
@@ -32,6 +34,7 @@ const COOKIE_OPTIONS = {
 export const SESSION_COOKIES = [
   { name: ACCESS_COOKIE, ...COOKIE_OPTIONS },
   { name: REFRESH_COOKIE, ...COOKIE_OPTIONS },
+  { name: BRAND_COOKIE, ...COOKIE_OPTIONS },
 ];
 
 const fingerprint = (refreshToken: string) =>
@@ -71,6 +74,17 @@ export async function writeSession(tokens: TokenResponse): Promise<void> {
   });
 }
 
+/** Stores the brand for as long as the session lasts, or deletes the one a previous sign-in left. */
+export async function writeBrand(brand: string | undefined, maxAge: number): Promise<void> {
+  const store = await cookies();
+  if (brand) store.set(BRAND_COOKIE, brand, { ...COOKIE_OPTIONS, maxAge });
+  else store.delete({ name: BRAND_COOKIE, ...COOKIE_OPTIONS });
+}
+
+export async function readBrandCookie(): Promise<string | undefined> {
+  return (await cookies()).get(BRAND_COOKIE)?.value;
+}
+
 export async function readAccessToken(): Promise<string | undefined> {
   const store = await cookies();
   return unwrapAccessToken(store.get(ACCESS_COOKIE)?.value, store.get(REFRESH_COOKIE)?.value);
@@ -81,7 +95,7 @@ export async function readRefreshToken(): Promise<string | undefined> {
 }
 
 /**
- * Deletes both cookies. The options are passed in full: `cookies().delete(name)` sends the
+ * Deletes the session cookies. The options are passed in full: `cookies().delete(name)` sends the
  * deletion without `secure`, and the browser ignores it for a `__Host-` cookie.
  */
 export async function clearSession(): Promise<void> {

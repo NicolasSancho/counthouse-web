@@ -7,6 +7,7 @@ export const signedInState = "e2e/.auth/ana.json";
 
 export const ACCESS_COOKIE = "__Host-ch_access";
 export const REFRESH_COOKIE = "__Host-ch_refresh";
+export const BRAND_COOKIE = "__Host-ch_brand";
 
 /** A second server of the same build in live mode, with the API unreachable (playwright.config). */
 export const API_DOWN_PORT = 3201;
@@ -15,6 +16,11 @@ export const apiDownURL = `http://localhost:${API_DOWN_PORT}`;
 export async function sessionCookies(page: Page) {
   const cookies = await page.context().cookies();
   return cookies.filter(({ name }) => name === ACCESS_COOKIE || name === REFRESH_COOKIE);
+}
+
+export async function brandCookie(page: Page) {
+  const cookies = await page.context().cookies();
+  return cookies.find(({ name }) => name === BRAND_COOKIE);
 }
 
 /** An access cookie value bound to this refresh token, as `src/server/session.ts` writes it. */
