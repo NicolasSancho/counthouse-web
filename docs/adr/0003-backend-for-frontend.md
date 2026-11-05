@@ -1,6 +1,6 @@
 # 0003 Backend for frontend
 
-Status: Accepted. Where the access token is refreshed is reopened in 0004.
+Status: Accepted. Where the access token is refreshed was reopened and is confirmed in 0004.
 
 ## Context
 

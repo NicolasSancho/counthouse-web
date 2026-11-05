@@ -11,11 +11,11 @@ was made.
 - Implementation details live in the code, its comments and `CLAUDE.md`, not in the records.
 - A `Proposed` record may still be edited until it is accepted.
 
-| Record                                                                          | Status                             |
-| ------------------------------------------------------------------------------- | ---------------------------------- |
-| [0001 Code structure and enforced boundaries](0001-structure-and-boundaries.md) | Accepted                           |
-| [0002 Cache Components](0002-cache-components.md)                               | Accepted                           |
-| [0003 Backend for frontend](0003-backend-for-frontend.md)                       | Accepted; refresh reopened in 0004 |
-| [0004 Authentication](0004-authentication.md)                                   | Proposed                           |
-| [0005 Contract pin and mock server](0005-contract-pin-and-mock-server.md)       | Accepted                           |
-| [0006 Tenant theme injection](0006-tenant-theme-injection.md)                   | Accepted                           |
+| Record                                                                          | Status                                |
+| ------------------------------------------------------------------------------- | ------------------------------------- |
+| [0001 Code structure and enforced boundaries](0001-structure-and-boundaries.md) | Accepted; proxy role extended in 0004 |
+| [0002 Cache Components](0002-cache-components.md)                               | Accepted                              |
+| [0003 Backend for frontend](0003-backend-for-frontend.md)                       | Accepted; refresh confirmed in 0004   |
+| [0004 Authentication](0004-authentication.md)                                   | Accepted                              |
+| [0005 Contract pin and mock server](0005-contract-pin-and-mock-server.md)       | Accepted                              |
+| [0006 Tenant theme injection](0006-tenant-theme-injection.md)                   | Accepted                              |

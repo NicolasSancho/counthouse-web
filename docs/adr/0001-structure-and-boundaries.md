@@ -1,6 +1,6 @@
 # 0001 Code structure and enforced boundaries
 
-Status: Accepted
+Status: Accepted. The proxy also renews the access token, see 0004.
 
 ## Context
 

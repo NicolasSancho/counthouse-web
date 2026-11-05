@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import type { Page } from "@playwright/test";
 
 /** The cookies saved by `auth.setup.ts`: a session for Ana Torres, Admin of Northwind. */
@@ -13,4 +15,10 @@ export const apiDownURL = `http://localhost:${API_DOWN_PORT}`;
 export async function sessionCookies(page: Page) {
   const cookies = await page.context().cookies();
   return cookies.filter(({ name }) => name === ACCESS_COOKIE || name === REFRESH_COOKIE);
+}
+
+/** An access cookie value bound to this refresh token, as `src/server/session.ts` writes it. */
+export function boundAccess(accessToken: string, refreshToken: string) {
+  const fingerprint = createHash("sha256").update(refreshToken).digest("base64url").slice(0, 16);
+  return `${fingerprint}.${accessToken}`;
 }
