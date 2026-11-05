@@ -45,7 +45,7 @@
     "ajv-formats": "^3.0.1",
     "eslint": "^9.39.5",
     "eslint-config-next": "16.4.4",
-    "eslint-plugin-boundaries": "^7.4.0",
+    "eslint-plugin-boundaries": "^7.4.1",
     "openapi-typescript": "7.13.0",
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.8.1",
