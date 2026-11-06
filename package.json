@@ -23,7 +23,7 @@
     "contract:check": "node scripts/check-contract.mjs"
   },
   "dependencies": {
-    "@nicolassancho/storybook-core": "^4.7.0",
+    "@nicolassancho/storybook-core": "^4.10.0",
     "msw": "^3.0.3",
     "next": "16.4.4",
     "openapi-fetch": "^0.17.0",
