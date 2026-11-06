@@ -161,8 +161,9 @@ describe("POST /auth/logout", () => {
 
 describe("mock fetch", () => {
   it("throws for a request no handler matches", async () => {
-    await expect(api.GET("/products")).rejects.toThrow(
-      "No mock handler for GET https://api.mock.invalid/api/v1/products"
+    const id = "5d1b7a30-8e42-4c19-b6f3-0a9c2e4d8b15";
+    await expect(api.GET("/products/{id}", { params: { path: { id } } })).rejects.toThrow(
+      `No mock handler for GET https://api.mock.invalid/api/v1/products/${id}`
     );
   });
 });
