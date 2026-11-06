@@ -83,9 +83,11 @@ function urlList(page: Page): List {
 
 test.use({ storageState: signedInState });
 
-for (const gap of [30, PAST_THE_DEBOUNCE_MS]) {
-  for (const [firstName, first] of Object.entries(ACTIONS)) {
-    for (const [secondName, second] of Object.entries(ACTIONS)) {
+for (const [firstName, first] of Object.entries(ACTIONS)) {
+  // No answer arrives between the actions, so the gap matters only if the debounce fires in it.
+  const gaps = firstName === "type" ? [30, PAST_THE_DEBOUNCE_MS] : [30];
+  for (const [secondName, second] of Object.entries(ACTIONS)) {
+    for (const gap of gaps) {
       test(`${firstName} then ${secondName}, ${gap} ms apart`, async ({ page }) => {
         const errors: Error[] = [];
         page.on("pageerror", (error) => errors.push(error));
