@@ -165,6 +165,28 @@ app-specific layout and screens live in this repo.
   its `href` is typed as a known route and the library passes a string. Pass `NavLink`
   (`src/shared/nav-link.tsx`) instead, and keep the hrefs typed as `Route` where they are defined.
 
+## Products list
+
+- The list's state lives in the URL: `q`, `status`, `sort` and a 1-based `page`. `parseProductQuery()`
+  reads it, and a value the API would refuse falls back to its default. `productsHref()` writes it.
+- `ProductListProvider` owns that state. Every change goes through it, in a transition, and builds
+  on any change still loading, so the current rows stay on screen, dimmed, until the new ones arrive.
+  The `Suspense` around the results has no key: a key shows the skeleton on every change and drops
+  focus to `<body>`.
+- Links in the list use `ProductLink`, which applies only what its `href` changes.
+- `applyChange()` holds the rules for merging a change into the list. Random sequences of changes
+  test it (`product-list-changes.test.ts`). `e2e/products-overlaps.spec.ts` runs every pair of user
+  actions against the real page, with both made before any answer arrives. Add a new action to both.
+- A link that vanishes with a change, such as Next on the last page, would leave focus on `<body>`, so
+  `ProductResultsPane` takes focus then.
+- `listProducts()` returns a failed call as a value, because an error thrown in a Server Component
+  loses its details in production, including the trace id. Unexpected errors reach
+  `src/app/(app)/error.tsx`, which keeps the shell.
+- `listProducts()` calls `connection()` before the API. Without it, a runtime prefetch ends with the
+  call still open, Next.js rejects it, and the failure handling logs an API failure that did not
+  happen. Only a live API shows this: the mock's `fetch` is not patched. No test covers it.
+- Reads are not cached ([ADR 0008](docs/adr/0008-product-reads-not-cached.md)).
+
 ## Brand
 
 - The `(app)` layout reads the brand cookie with `readBrand()` (`src/server/brand.ts`) and sets

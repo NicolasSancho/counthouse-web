@@ -124,7 +124,7 @@ test.describe("token refresh", () => {
     await page.goto(`${apiDownURL}/products`);
 
     await expect(page).toHaveURL(/\/products$/);
-    await expect(page.getByRole("heading", { level: 1, name: "Products" })).toBeVisible();
+    await expect(page.getByText("Something went wrong.")).toBeVisible();
     await expect(page.getByRole("button", { name: "Account" })).toBeVisible();
     const cookies = await sessionCookies(page);
     expect(cookies.map(({ name }) => name)).toEqual([REFRESH_COOKIE]);

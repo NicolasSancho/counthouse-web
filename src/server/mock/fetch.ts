@@ -3,11 +3,12 @@ import "server-only";
 import { getResponse } from "msw";
 
 import { createAuthHandlers } from "@/server/mock/auth-handlers";
+import { createProductHandlers } from "@/server/mock/product-handlers";
 
 /** A host that cannot resolve (`.invalid`, RFC 2606), so a request that escapes the mock fails. */
 export const MOCK_BASE_URL = "https://api.mock.invalid/api/v1";
 
-const handlers = [...createAuthHandlers(MOCK_BASE_URL)];
+const handlers = [...createAuthHandlers(MOCK_BASE_URL), ...createProductHandlers(MOCK_BASE_URL)];
 
 /**
  * A `fetch` that answers from the MSW handlers inside this process. It is passed to the API client

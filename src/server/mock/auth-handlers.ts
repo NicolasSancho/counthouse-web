@@ -1,10 +1,17 @@
 import "server-only";
 
-import { randomUUID } from "node:crypto";
 import { createOpenApiHttp } from "openapi-msw";
 
-import type { ErrorCode, FieldError, Me, paths, ProblemDetail } from "@/server/api/schema";
-import { DEMO_PASSWORD, tenants, users } from "@/server/mock/demo-data";
+import type { FieldError, paths } from "@/server/api/schema";
+import { DEMO_PASSWORD, users } from "@/server/mock/demo-data";
+import {
+  authenticate,
+  findMe,
+  problem,
+  tokenProblem,
+  validationFailed,
+  type Problem,
+} from "@/server/mock/responses";
 import { issue, TOKEN_LIFETIME, verify } from "@/server/mock/tokens";
 
 /**
@@ -77,28 +84,13 @@ export function createAuthHandlers(baseUrl: string) {
     }),
 
     http.get("/auth/me", ({ request, response }) => {
-      const token = /^Bearer (\S+)$/.exec(request.headers.get("Authorization") ?? "")?.[1];
-      if (!token) return response(401).json(...tokenProblem("TOKEN_INVALID"));
-
-      const result = verify(token, "access");
-      if (!result.ok) return response(401).json(...tokenProblem(result.code));
-
-      const me = findMe(result.sub);
-      return me ? response(200).json(me) : response(401).json(...tokenProblem("TOKEN_INVALID"));
+      const session = authenticate(request);
+      return session.ok ? response(200).json(session.me) : response(401).json(...session.problem);
     }),
   ];
 }
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function findMe(userId: string): Me | undefined {
-  const user = users.find((candidate) => candidate.id === userId);
-  const tenant = tenants.find((candidate) => candidate.id === user?.tenantId);
-  return user && tenant ? { user, tenant } : undefined;
-}
-
-/** A Problem Details body and the init that sends it as `application/problem+json`. */
-type Problem = [body: ProblemDetail, init: { headers: Record<string, string> }];
 
 type BodyResult = { ok: true; value: Record<string, unknown> } | { ok: false; problem: Problem };
 
@@ -143,31 +135,4 @@ function checkString(value: unknown, field: string, errors: FieldError[]): strin
     return undefined;
   }
   return value;
-}
-
-function validationFailed(errors: FieldError[]): Problem {
-  const detail =
-    errors.length === 1 ? "1 field is invalid." : `${errors.length} fields are invalid.`;
-  return problem(400, "VALIDATION_FAILED", "Validation failed", { detail, errors });
-}
-
-function tokenProblem(code: "TOKEN_EXPIRED" | "TOKEN_INVALID"): Problem {
-  return problem(401, code, code === "TOKEN_EXPIRED" ? "Token expired" : "Token invalid");
-}
-
-function problem(
-  status: number,
-  code: ErrorCode,
-  title: string,
-  extra: Pick<ProblemDetail, "detail" | "errors"> = {}
-): Problem {
-  const body: ProblemDetail = {
-    type: "about:blank",
-    title,
-    status,
-    code,
-    traceId: randomUUID().replaceAll("-", ""),
-    ...extra,
-  };
-  return [body, { headers: { "Content-Type": "application/problem+json" } }];
 }
