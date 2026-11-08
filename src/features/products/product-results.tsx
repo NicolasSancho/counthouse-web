@@ -1,7 +1,5 @@
 import {
-  Alert,
   Badge,
-  ButtonLink,
   EmptyState,
   Pagination,
   Table,
@@ -15,6 +13,7 @@ import {
 
 import { emptyKind } from "@/features/products/empty-state";
 import { formatDate, formatPrice } from "@/features/products/format";
+import { LoadFailedAlert } from "@/features/products/load-failed-alert";
 import { ClearFiltersLink, ProductLink } from "@/features/products/product-list-context";
 import {
   nextSort,
@@ -143,33 +142,24 @@ export async function ProductResults({ query }: { query: ProductQuery }) {
   const [list, user] = await Promise.allSettled([listProducts(query), getCurrentUser()]);
   if (list.status === "rejected") throw list.reason;
 
-  if (!list.value.ok) {
-    const { traceId } = list.value;
+  const read = list.value;
+  if (!read.ok) {
     return (
       <>
         <Status />
-        <Alert
+        <LoadFailedAlert
           title="Products could not load."
+          retryHref={productsHref(query)}
+          LinkComponent={ProductLink}
+          traceId={read.reason === "failed" ? read.traceId : undefined}
           className="m-3"
-          action={
-            <ButtonLink
-              href={productsHref(query)}
-              variant="outline"
-              size="small"
-              LinkComponent={ProductLink}
-            >
-              Retry
-            </ButtonLink>
-          }
-        >
-          Try again. {traceId ? `If it keeps happening, quote trace id ${traceId}.` : null}
-        </Alert>
+        />
       </>
     );
   }
   if (user.status === "rejected") throw user.reason;
 
-  const { items, totalItems, totalPages } = list.value.page;
+  const { items, totalItems, totalPages } = read.value;
   const { page } = query;
   const { defaultCurrency } = user.value.tenant;
 

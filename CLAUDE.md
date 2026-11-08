@@ -179,9 +179,10 @@ app-specific layout and screens live in this repo.
   actions against the real page, with both made before any answer arrives. Add a new action to both.
 - A link that vanishes with a change, such as Next on the last page, would leave focus on `<body>`, so
   `ProductResultsPane` takes focus then.
-- `listProducts()` returns a failed call as a value, because an error thrown in a Server Component
-  loses its details in production, including the trace id. Unexpected errors reach
-  `src/app/(app)/error.tsx`, which keeps the shell.
+- Reads go through `readApi()` (`src/server/api/read.ts`), which returns an `ApiRead`: the value,
+  not found, or failed with the trace id. An error thrown in a Server Component loses its details in
+  production, trace id included. A 401 ends the session. Unexpected errors reach
+  `src/app/(app)/error.tsx`, which keeps the shell. `LoadFailedAlert` shows a failed read.
 - `listProducts()` calls `connection()` before the API. Without it, a runtime prefetch ends with the
   call still open, Next.js rejects it, and the failure handling logs an API failure that did not
   happen. Only a live API shows this: the mock's `fetch` is not patched. No test covers it.
