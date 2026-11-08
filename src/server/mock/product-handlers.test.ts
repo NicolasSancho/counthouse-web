@@ -45,7 +45,7 @@ describe("GET /products", () => {
     const own = products.filter(({ tenantId }) => tenantId === acme?.id);
     const { data } = await list({ size: 100 }, marta);
 
-    const ids = own.map(({ summary }) => summary.id);
+    const ids = own.map(({ detail }) => detail.id);
     expect(data?.items.length).toBeGreaterThan(0);
     expect(data?.items.every(({ id }) => ids.includes(id))).toBe(true);
   });
@@ -61,7 +61,7 @@ describe("GET /products", () => {
 
   it("matches any part of a name or a SKU, in any case", async () => {
     expect(await names({ q: "RUNNER" })).toContain("Trail Runner");
-    expect(await names({ q: "tr-0-1" })).toEqual(["Trail Runner"]);
+    expect(await names({ q: "tr0-blk-41" })).toEqual(["Trail Runner"]);
   });
 
   it("pages with a zero-based index and reports the totals", async () => {
@@ -98,5 +98,51 @@ describe("GET /products", () => {
 
     expect(response.status).toBe(401);
     expect(error).toMatchObject({ code: "TOKEN_INVALID" });
+  });
+});
+
+const getProduct = (id: string, token = ana) =>
+  api.GET("/products/{id}", {
+    headers: { Authorization: `Bearer ${token}` },
+    params: { path: { id } },
+  });
+
+describe("GET /products/{id}", () => {
+  it("answers every demo product to its own tenant, as the contract describes it", async () => {
+    const tokens = { northwind: ana, acme: marta };
+    for (const product of products) {
+      const slug = tenants.find(({ id }) => id === product.tenantId)?.slug;
+      const token = slug === "acme" ? tokens.acme : tokens.northwind;
+      const { data, response } = await getProduct(product.detail.id, token);
+
+      expect(response.status).toBe(200);
+      expect(data).toEqual(product.detail);
+    }
+  });
+
+  it("compares ids without regard to case, as UUIDs are", async () => {
+    const id = products[0]?.detail.id ?? "";
+    const { response } = await getProduct(id.toUpperCase());
+
+    expect(response.status).toBe(200);
+  });
+
+  it("answers 404 for another tenant's product and for an unknown id", async () => {
+    const acme = tenants.find(({ slug }) => slug === "acme");
+    const other = products.find(({ tenantId }) => tenantId === acme?.id);
+    if (!other) throw new Error("No Acme product");
+
+    for (const id of [other.detail.id, "00000000-0000-4000-8000-000000000000"]) {
+      const { response, error } = await getProduct(id);
+      expect(response.status).toBe(404);
+      expect(error).toMatchObject({ code: "NOT_FOUND" });
+    }
+  });
+
+  it("answers 401 without a valid token", async () => {
+    const id = products[0]?.detail.id ?? "";
+    const { response } = await getProduct(id, "nonsense");
+
+    expect(response.status).toBe(401);
   });
 });
