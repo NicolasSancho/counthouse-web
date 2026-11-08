@@ -188,6 +188,13 @@ app-specific layout and screens live in this repo.
   happen. Only a live API shows this: the mock's `fetch` is not patched. No test covers it.
 - Reads are not cached ([ADR 0008](docs/adr/0008-product-reads-not-cached.md)).
 
+## JavaScript
+
+Signed-in pages need JavaScript ([ADR 0009](docs/adr/0009-signed-in-pages-need-javascript.md)):
+streamed content stays hidden without it, and `NoScriptNotice` in the `(app)` layout says so. The
+sign-in pages and Sign out work without it. Playwright's text matchers skip `<noscript>` content, so
+tests read `innerText()`.
+
 ## Brand
 
 - The `(app)` layout reads the brand cookie with `readBrand()` (`src/server/brand.ts`) and sets
