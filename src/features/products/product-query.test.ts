@@ -5,6 +5,7 @@ import {
   MAX_SEARCH_LENGTH,
   nextSort,
   parseProductQuery,
+  productHref,
   productsHref,
   sortDirection,
 } from "@/features/products/product-query";
@@ -52,6 +53,21 @@ describe("productsHref", () => {
     const query = { q: "a b&c", status: "ARCHIVED", sort: "updatedAt,asc", page: 2 } as const;
     const params = new URL(productsHref(query), "http://localhost").searchParams;
     expect(parseProductQuery(Object.fromEntries(params))).toEqual(query);
+  });
+});
+
+describe("productHref", () => {
+  it("carries the list state, so the way back returns to it", () => {
+    const query = { q: "boot", status: "DRAFT", page: 2 } as const;
+    const href = productHref("p-1", query);
+    const params = new URL(href, "http://localhost").searchParams;
+
+    expect(href.startsWith("/products/p-1?")).toBe(true);
+    expect(productsHref(parseProductQuery(Object.fromEntries(params)))).toBe(productsHref(query));
+  });
+
+  it("is the plain product URL for the default list", () => {
+    expect(productHref("p-1", { q: "", page: 1 })).toBe("/products/p-1");
   });
 });
 

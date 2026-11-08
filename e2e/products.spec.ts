@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { expectNoAxeViolations } from "./axe";
-import { apiDownURL, REFRESH_COOKIE, signedInState } from "./session";
+import { apiDownURL, martaState, REFRESH_COOKIE, signedInState } from "./session";
 
 const search = (page: Page) => page.getByRole("searchbox", { name: /search products/i });
 const rows = (page: Page) => page.getByRole("row").filter({ has: page.getByRole("cell") });
@@ -13,13 +13,6 @@ const slowNavigations = (page: Page) =>
     if (route.request().headers().rsc) await new Promise((done) => setTimeout(done, 500));
     await route.continue();
   });
-
-async function signInAsMarta(page: Page) {
-  await page.goto("/login");
-  await page.getByText("Other demo accounts").click();
-  await page.getByRole("listitem").filter({ hasText: "Marta Silva" }).getByRole("button").click();
-  await page.waitForURL(/\/products$/);
-}
 
 test.use({ storageState: signedInState });
 
@@ -36,9 +29,9 @@ test("shows the tenant's products with their prices and a page of 20", async ({ 
 });
 
 test("the Acme demo sees its own products in its own currency", async ({ browser }) => {
-  const context = await browser.newContext({ storageState: undefined });
+  const context = await browser.newContext({ storageState: martaState });
   const page = await context.newPage();
-  await signInAsMarta(page);
+  await page.goto("/products");
 
   await expect(page.getByRole("cell", { name: "Anvil" })).toBeVisible();
   await expect(rows(page).first()).toContainText("US$");
@@ -132,9 +125,8 @@ test("Next with typed text waiting goes to the first page of that search", async
 });
 
 test("Clear filters also drops text that has not gone out yet", async ({ browser }) => {
-  const context = await browser.newContext({ storageState: undefined });
+  const context = await browser.newContext({ storageState: martaState });
   const page = await context.newPage();
-  await signInAsMarta(page);
   // Acme has no archived products, so this is an empty list with no search in the URL.
   await page.goto("/products?status=ARCHIVED");
   const clear = page.getByRole("link", { name: "Clear filters" });

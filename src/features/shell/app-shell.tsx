@@ -5,6 +5,7 @@ import { SkipLink } from "@/shared/skip-link";
 import { UserSlot } from "@/shared/user-slot";
 
 import { AppNav } from "./app-nav";
+import { RouteFocus } from "./route-focus";
 import { TenantTile } from "./tenant-tile";
 
 const MAIN_ID = "main";
@@ -54,6 +55,7 @@ export const AppShell = ({ children, userSlot }: { children: ReactNode; userSlot
           </div>
           <div className="ml-auto">{userSlot}</div>
         </header>
+        <RouteFocus targetId={MAIN_ID} />
         <main id={MAIN_ID} tabIndex={-1} className="flex-1 p-4 focus:outline-hidden sm:p-6">
           {children}
         </main>

@@ -162,8 +162,13 @@ describe("POST /auth/logout", () => {
 describe("mock fetch", () => {
   it("throws for a request no handler matches", async () => {
     const id = "5d1b7a30-8e42-4c19-b6f3-0a9c2e4d8b15";
-    await expect(api.GET("/products/{id}", { params: { path: { id } } })).rejects.toThrow(
-      `No mock handler for GET https://api.mock.invalid/api/v1/products/${id}`
+    await expect(
+      api.POST("/products/{id}/variants", {
+        params: { path: { id } },
+        body: { version: 1, variants: [{ sku: "X-1", optionValues: [] }] },
+      })
+    ).rejects.toThrow(
+      `No mock handler for POST https://api.mock.invalid/api/v1/products/${id}/variants`
     );
   });
 });

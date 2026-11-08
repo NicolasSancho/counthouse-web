@@ -2,9 +2,15 @@ import "server-only";
 
 import { createOpenApiHttp } from "openapi-msw";
 
-import type { FieldError, paths, ProductStatus } from "@/server/api/schema";
-import { products, type DemoProduct } from "@/server/mock/demo-products";
-import { authenticate, validationFailed } from "@/server/mock/responses";
+import type {
+  FieldError,
+  paths,
+  ProductDetail,
+  ProductStatus,
+  ProductSummary,
+} from "@/server/api/schema";
+import { products, toSummary } from "@/server/mock/demo-products";
+import { authenticate, problem, validationFailed } from "@/server/mock/responses";
 
 const SORT = /^(createdAt|updatedAt|name|basePriceCents),(asc|desc)$/;
 const STATUSES: readonly string[] = ["DRAFT", "ACTIVE", "ARCHIVED"] satisfies ProductStatus[];
@@ -14,7 +20,7 @@ const DEFAULT_PAGE_SIZE = 20;
 
 type SortField = "createdAt" | "updatedAt" | "name" | "basePriceCents";
 
-/** `GET /products` of contract 0.3.0: filter, sort and page one tenant's products. */
+/** `GET /products` and `GET /products/{id}` of contract 0.3.0, for one tenant's products. */
 export function createProductHandlers(baseUrl: string) {
   const http = createOpenApiHttp<paths>({ baseUrl });
 
@@ -44,17 +50,33 @@ export function createProductHandlers(baseUrl: string) {
 
       const matches = products
         .filter((product) => product.tenantId === session.me.tenant.id)
-        .filter((product) => isListed(product, status))
-        .filter((product) => matchesQuery(product, q))
+        .map(({ detail }) => detail)
+        .filter((detail) => isListed(detail, status))
+        .filter((detail) => matchesQuery(detail, q))
+        .map(toSummary)
         .toSorted(compareBy(sort));
 
       return response(200).json({
-        items: matches.slice(page * size, (page + 1) * size).map((product) => product.summary),
+        items: matches.slice(page * size, (page + 1) * size),
         page,
         size,
         totalItems: matches.length,
         totalPages: Math.ceil(matches.length / size),
       });
+    }),
+
+    // Another tenant's product is answered like a missing one, as the contract says.
+    http.get("/products/{id}", ({ request, params, response }) => {
+      const session = authenticate(request);
+      if (!session.ok) return response(401).json(...session.problem);
+
+      // Ids are compared without regard to case, as UUIDs are.
+      const id = params.id.toLowerCase();
+      const product = products.find(
+        ({ detail, tenantId }) => detail.id === id && tenantId === session.me.tenant.id
+      );
+      if (!product) return response(404).json(...problem(404, "NOT_FOUND", "Not found"));
+      return response(200).json(product.detail);
     }),
   ];
 }
@@ -76,14 +98,14 @@ function readInteger(
 }
 
 /** Archived products show only when asked for. */
-function isListed({ summary }: DemoProduct, status: string | null): boolean {
-  return status ? summary.status === status : summary.status !== "ARCHIVED";
+function isListed(detail: ProductDetail, status: string | null): boolean {
+  return status ? detail.status === status : detail.status !== "ARCHIVED";
 }
 
-function matchesQuery(product: DemoProduct, q: string): boolean {
+function matchesQuery(detail: ProductDetail, q: string): boolean {
   return (
-    product.summary.name.toLowerCase().includes(q) ||
-    product.skus.some((sku) => sku.toLowerCase().includes(q))
+    detail.name.toLowerCase().includes(q) ||
+    detail.variants.some(({ sku }) => sku.toLowerCase().includes(q))
   );
 }
 
@@ -91,13 +113,13 @@ function matchesQuery(product: DemoProduct, q: string): boolean {
 function compareBy(sort: string) {
   const [field, direction] = sort.split(",") as [SortField, "asc" | "desc"];
   const sign = direction === "asc" ? 1 : -1;
-  return (a: DemoProduct, b: DemoProduct) => {
-    const left = a.summary[field];
-    const right = b.summary[field];
+  return (a: ProductSummary, b: ProductSummary) => {
+    const left = a[field];
+    const right = b[field];
     const order =
       typeof left === "number" && typeof right === "number"
         ? left - right
         : String(left).localeCompare(String(right));
-    return sign * order || a.summary.id.localeCompare(b.summary.id);
+    return sign * order || a.id.localeCompare(b.id);
   };
 }

@@ -21,3 +21,4 @@ was made.
 | [0006 Tenant theme injection](0006-tenant-theme-injection.md)                   | Accepted; partly superseded by 0007   |
 | [0007 Tenant brand read on the server](0007-tenant-brand-read-on-the-server.md) | Accepted                              |
 | [0008 Product list reads are not cached](0008-product-reads-not-cached.md)      | Accepted                              |
+| [0009 Signed-in pages need JavaScript](0009-signed-in-pages-need-javascript.md) | Accepted                              |

@@ -56,6 +56,16 @@ export function productsHref({ q, status, sort, page }: ProductQuery): string {
   return search ? `/products?${search}` : "/products";
 }
 
+/**
+ * The URL of a product, carrying the list state it was opened from, so the way back returns to it.
+ * The product page reads that state with `parseProductQuery()`, as the list does.
+ */
+export function productHref(id: string, query: ProductQuery): string {
+  const list = productsHref(query);
+  const search = list.indexOf("?");
+  return `/products/${id}${search === -1 ? "" : list.slice(search)}`;
+}
+
 /** What differs between two list states. */
 export function changedFields(from: ProductQuery, to: ProductQuery): Partial<ProductQuery> {
   const patch: Partial<ProductQuery> = {};

@@ -1,5 +1,6 @@
 import { UserMenu } from "@/features/auth/user-menu";
 import { AppShell } from "@/features/shell/app-shell";
+import { NoScriptNotice } from "@/features/shell/noscript-notice";
 import { readBrand } from "@/server/brand";
 
 // The brand has to be right on the first frame, so this layout reads its cookie outside `Suspense`,
@@ -13,7 +14,10 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
 
   return (
     <div data-brand={brand} className="contents">
-      <AppShell userSlot={<UserMenu />}>{children}</AppShell>
+      <AppShell userSlot={<UserMenu />}>
+        <NoScriptNotice />
+        {children}
+      </AppShell>
     </div>
   );
 }

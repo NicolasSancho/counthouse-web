@@ -1,7 +1,5 @@
 import {
-  Alert,
   Badge,
-  ButtonLink,
   EmptyState,
   Pagination,
   Table,
@@ -15,10 +13,12 @@ import {
 
 import { emptyKind } from "@/features/products/empty-state";
 import { formatDate, formatPrice } from "@/features/products/format";
+import { LoadFailedAlert } from "@/features/products/load-failed-alert";
 import { ClearFiltersLink, ProductLink } from "@/features/products/product-list-context";
 import {
   nextSort,
   PAGE_SIZE,
+  productHref,
   productsHref,
   sortDirection,
   type ProductQuery,
@@ -26,14 +26,10 @@ import {
   type SortField,
 } from "@/features/products/product-query";
 import { listProducts } from "@/features/products/queries";
-import type { ProductStatus, ProductSummary } from "@/server/api/schema";
+import { STATUS_NAMES, statusBadgeVariant } from "@/features/products/status";
+import type { ProductSummary } from "@/server/api/schema";
 import { getCurrentUser } from "@/server/auth";
-
-const STATUS_NAMES: Record<ProductStatus, string> = {
-  ACTIVE: "Active",
-  DRAFT: "Draft",
-  ARCHIVED: "Archived",
-};
+import { NavLink } from "@/shared/nav-link";
 
 const SORT_NAMES: Record<SortField, string> = {
   createdAt: "date added",
@@ -71,14 +67,25 @@ function SortableHeader({
   );
 }
 
-function ProductRow({ product, currency }: { product: ProductSummary; currency: string }) {
+function ProductRow({
+  product,
+  query,
+  currency,
+}: {
+  product: ProductSummary;
+  query: ProductQuery;
+  currency: string;
+}) {
   return (
     <TableRow>
-      <TableCell className="font-medium">{product.name}</TableCell>
+      <TableCell className="font-medium">
+        {/* Opening a product leaves the list, so this is a plain link, not a `ProductLink`. */}
+        <TextLink href={productHref(product.id, query)} LinkComponent={NavLink}>
+          {product.name}
+        </TextLink>
+      </TableCell>
       <TableCell>
-        <Badge variant={product.status === "ACTIVE" ? "success" : "neutral"}>
-          {STATUS_NAMES[product.status]}
-        </Badge>
+        <Badge variant={statusBadgeVariant(product.status)}>{STATUS_NAMES[product.status]}</Badge>
       </TableCell>
       <TableCell align="right">{product.variantCount}</TableCell>
       <TableCell align="right">{product.totalStock}</TableCell>
@@ -143,33 +150,24 @@ export async function ProductResults({ query }: { query: ProductQuery }) {
   const [list, user] = await Promise.allSettled([listProducts(query), getCurrentUser()]);
   if (list.status === "rejected") throw list.reason;
 
-  if (!list.value.ok) {
-    const { traceId } = list.value;
+  const read = list.value;
+  if (!read.ok) {
     return (
       <>
         <Status />
-        <Alert
+        <LoadFailedAlert
           title="Products could not load."
+          retryHref={productsHref(query)}
+          LinkComponent={ProductLink}
+          traceId={read.reason === "failed" ? read.traceId : undefined}
           className="m-3"
-          action={
-            <ButtonLink
-              href={productsHref(query)}
-              variant="outline"
-              size="small"
-              LinkComponent={ProductLink}
-            >
-              Retry
-            </ButtonLink>
-          }
-        >
-          Try again. {traceId ? `If it keeps happening, quote trace id ${traceId}.` : null}
-        </Alert>
+        />
       </>
     );
   }
   if (user.status === "rejected") throw user.reason;
 
-  const { items, totalItems, totalPages } = list.value.page;
+  const { items, totalItems, totalPages } = read.value;
   const { page } = query;
   const { defaultCurrency } = user.value.tenant;
 
@@ -203,7 +201,12 @@ export async function ProductResults({ query }: { query: ProductQuery }) {
             </TableHead>
             <TableBody>
               {items.map((product) => (
-                <ProductRow key={product.id} product={product} currency={defaultCurrency} />
+                <ProductRow
+                  key={product.id}
+                  product={product}
+                  query={query}
+                  currency={defaultCurrency}
+                />
               ))}
             </TableBody>
           </Table>

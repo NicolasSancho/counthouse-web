@@ -173,19 +173,50 @@ app-specific layout and screens live in this repo.
   on any change still loading, so the current rows stay on screen, dimmed, until the new ones arrive.
   The `Suspense` around the results has no key: a key shows the skeleton on every change and drops
   focus to `<body>`.
-- Links in the list use `ProductLink`, which applies only what its `href` changes.
+- Links in the list use `ProductLink`, which applies only what its `href` changes. Product names are
+  the exception: they leave the list, so they use `NavLink`.
 - `applyChange()` holds the rules for merging a change into the list. Random sequences of changes
   test it (`product-list-changes.test.ts`). `e2e/products-overlaps.spec.ts` runs every pair of user
   actions against the real page, with both made before any answer arrives. Add a new action to both.
 - A link that vanishes with a change, such as Next on the last page, would leave focus on `<body>`, so
   `ProductResultsPane` takes focus then.
-- `listProducts()` returns a failed call as a value, because an error thrown in a Server Component
-  loses its details in production, including the trace id. Unexpected errors reach
-  `src/app/(app)/error.tsx`, which keeps the shell.
+- Reads go through `readApi()` (`src/server/api/read.ts`), which returns an `ApiRead`: the value,
+  not found, or failed with the trace id. An error thrown in a Server Component loses its details in
+  production, trace id included. A 401 ends the session. Unexpected errors reach
+  `src/app/(app)/error.tsx`, which keeps the shell. `LoadFailedAlert` shows a failed read.
 - `listProducts()` calls `connection()` before the API. Without it, a runtime prefetch ends with the
   call still open, Next.js rejects it, and the failure handling logs an API failure that did not
   happen. Only a live API shows this: the mock's `fetch` is not patched. No test covers it.
 - Reads are not cached ([ADR 0008](docs/adr/0008-product-reads-not-cached.md)).
+
+## Product detail
+
+- `/products/[id]` streams behind `Suspense` like the list. `getProduct()` takes the URL segment:
+  `normalizeProductId()` decodes and lowercases it, and a segment that is not a UUID is not found
+  without an API call (the contract has no 400 there). The read is wrapped in `cache()`, so the page
+  and `generateMetadata` share one call.
+- A missing product, or another tenant's, renders `products/[id]/not-found.tsx` inside the shell.
+  The shell has already streamed, so the answer is HTTP 200 with `noindex`; `readApi()` logs the 404.
+- Product links carry the list state (`productHref()`), and the page reads it with
+  `parseProductQuery()`, so the way back returns to the list as it was left. `not-found.tsx` gets no
+  props, so `ListReturnLink` reads the URL itself.
+- The side column (Status, Details) comes first in the code, so on narrow screens it shows before
+  the variants table. Long names and descriptions wrap anywhere, so they never widen the page.
+- Variants show one column per option name, active ones first. An active variant with no stock
+  reads "Out of stock".
+- After a client navigation to another page, `RouteFocus` in the shell moves focus to `main` when it
+  was left on `<body>`, so the next Tab reaches the page's first control.
+- The demo catalog (`src/server/mock/demo-products.ts`) stores product details only, and the list's
+  summary is derived with `toSummary()`, as the API derives it. Acme's products are written out by
+  hand, one case each, and Northwind's cases are set by name; tests refer to them by name.
+  `demo-products.test.ts` checks the contract's prose rules.
+
+## JavaScript
+
+Signed-in pages need JavaScript ([ADR 0009](docs/adr/0009-signed-in-pages-need-javascript.md)):
+streamed content stays hidden without it, and `NoScriptNotice` in the `(app)` layout says so. The
+sign-in pages and Sign out work without it. Playwright's text matchers skip `<noscript>` content, so
+tests read `innerText()`.
 
 ## Brand
 
