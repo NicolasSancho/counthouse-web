@@ -29,6 +29,8 @@ import { listProducts } from "@/features/products/queries";
 import { STATUS_NAMES, statusBadgeVariant } from "@/features/products/status";
 import type { ProductSummary } from "@/server/api/schema";
 import { getCurrentUser } from "@/server/auth";
+import { getFormatLocales } from "@/server/locale";
+import type { FormatLocales } from "@/shared/locale";
 import { NavLink } from "@/shared/nav-link";
 
 const SORT_NAMES: Record<SortField, string> = {
@@ -71,10 +73,12 @@ function ProductRow({
   product,
   query,
   currency,
+  locales,
 }: {
   product: ProductSummary;
   query: ProductQuery;
   currency: string;
+  locales: FormatLocales;
 }) {
   return (
     <TableRow>
@@ -89,9 +93,11 @@ function ProductRow({
       </TableCell>
       <TableCell align="right">{product.variantCount}</TableCell>
       <TableCell align="right">{product.totalStock}</TableCell>
-      <TableCell align="right">{formatPrice(product.basePriceCents, currency)}</TableCell>
+      <TableCell align="right">
+        {formatPrice(product.basePriceCents, currency, locales.numbers)}
+      </TableCell>
       <TableCell>
-        <time dateTime={product.updatedAt}>{formatDate(product.updatedAt)}</time>
+        <time dateTime={product.updatedAt}>{formatDate(product.updatedAt, locales.dates)}</time>
       </TableCell>
     </TableRow>
   );
@@ -170,6 +176,7 @@ export async function ProductResults({ query }: { query: ProductQuery }) {
   const { items, totalItems, totalPages } = read.value;
   const { page } = query;
   const { defaultCurrency } = user.value.tenant;
+  const locales = await getFormatLocales();
 
   return (
     <>
@@ -206,6 +213,7 @@ export async function ProductResults({ query }: { query: ProductQuery }) {
                   product={product}
                   query={query}
                   currency={defaultCurrency}
+                  locales={locales}
                 />
               ))}
             </TableBody>
