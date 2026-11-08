@@ -11,3 +11,17 @@ export function formatDate(iso: string): string {
     new Date(iso)
   );
 }
+
+/** A date and time in UTC, labelled as such, for when a product last changed. */
+export function formatDateTime(iso: string): string {
+  // `dateStyle` cannot be combined with `timeZoneName`, so the parts are named one by one.
+  return new Intl.DateTimeFormat(LOCALE, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "UTC",
+    timeZoneName: "short",
+  }).format(new Date(iso));
+}
