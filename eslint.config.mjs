@@ -93,6 +93,13 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // No raw HTML: the script policy stops injected scripts, not injected markup such as a form or a
+  // link. See "Security headers" in CLAUDE.md.
+  {
+    rules: {
+      "react/no-danger": "error",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

@@ -248,6 +248,9 @@ skip `<noscript>` content, so tests read `innerText()`.
   headers, or the browser refuses it.
 - `e2e/csp.spec.ts` checks that every script carries the nonce and that injected scripts and inline
   handlers do not run.
+- The policy covers scripts only, so injected markup such as a form or a link still renders.
+  ESLint forbids `dangerouslySetInnerHTML` (`react/no-danger`); an exception needs an
+  `eslint-disable-next-line react/no-danger -- <reason>` on that line.
 
 ## Brand
 
