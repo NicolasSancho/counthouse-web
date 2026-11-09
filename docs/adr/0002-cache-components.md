@@ -1,6 +1,6 @@
 # 0002 Cache Components
 
-Status: Accepted; exception for the brand cookie in 0007
+Status: Accepted; exception for the brand cookie in 0007; every page renders per request from 0010
 
 ## Context
 

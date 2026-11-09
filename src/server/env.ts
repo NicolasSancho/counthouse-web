@@ -49,9 +49,8 @@ export function readApiConfig(): ApiConfig {
 
 /**
  * The mode alone, without the base URL checks, for pages that only show or hide demo content.
- * Pages that call it are prerendered, so the value is fixed when the app is built: changing
- * `API_MODE` needs a new build. Code that acts on the mode at request time, such as the demo
- * sign-in, calls it again there.
+ * Code that acts on the mode, such as the demo sign-in, calls it again: what a page showed is no
+ * proof of the mode when a request arrives.
  */
 export function readApiMode(): ApiMode {
   return parseApiMode(process.env);

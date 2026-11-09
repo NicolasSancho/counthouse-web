@@ -14,11 +14,12 @@ was made.
 | Record                                                                          | Status                                |
 | ------------------------------------------------------------------------------- | ------------------------------------- |
 | [0001 Code structure and enforced boundaries](0001-structure-and-boundaries.md) | Accepted; proxy role extended in 0004 |
-| [0002 Cache Components](0002-cache-components.md)                               | Accepted; exception in 0007           |
+| [0002 Cache Components](0002-cache-components.md)                               | Accepted; exception in 0007, 0010     |
 | [0003 Backend for frontend](0003-backend-for-frontend.md)                       | Accepted; refresh confirmed in 0004   |
 | [0004 Authentication](0004-authentication.md)                                   | Accepted                              |
 | [0005 Contract pin and mock server](0005-contract-pin-and-mock-server.md)       | Accepted                              |
 | [0006 Tenant theme injection](0006-tenant-theme-injection.md)                   | Accepted; partly superseded by 0007   |
 | [0007 Tenant brand read on the server](0007-tenant-brand-read-on-the-server.md) | Accepted                              |
 | [0008 Product list reads are not cached](0008-product-reads-not-cached.md)      | Accepted                              |
-| [0009 Signed-in pages need JavaScript](0009-signed-in-pages-need-javascript.md) | Accepted                              |
+| [0009 Signed-in pages need JavaScript](0009-signed-in-pages-need-javascript.md) | Accepted; changed in part by 0010     |
+| [0010 Script policy with a nonce](0010-script-policy-with-a-nonce.md)           | Accepted                              |

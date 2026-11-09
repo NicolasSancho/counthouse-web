@@ -45,7 +45,10 @@ it("redirects a HEAD without a session, like a GET", async () => {
 // No page has a signed-in Server Action yet, so these paths cannot be reached from a browser test.
 describe("a POST", () => {
   it("passes without a session", async () => {
-    await expect(proxy(request("POST"))).resolves.toBeUndefined();
+    const response = await proxy(request("POST"));
+
+    expect(response.headers.get("x-middleware-next")).toBe("1");
+    expect(response.headers.get("location")).toBeNull();
   });
 
   it("passes without the refresh cookie when the refresh is refused", async () => {

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { pagePolicy } from "@/server/csp";
 import { refreshAccessToken } from "@/server/refresh";
 import {
   ACCESS_COOKIE,
@@ -28,7 +29,7 @@ function forward(request: NextRequest) {
  * sign-in page, which has no such action, so it fails there. It passes instead, and the action
  * redirects when it reads the session.
  */
-export async function proxy(request: NextRequest) {
+async function route(request: NextRequest) {
   const { pathname } = request.nextUrl;
   // `/login/expired` always passes, so a token the API refuses cannot loop. Sign-out deletes
   // whatever cookies are left, even after the access cookie expired.
@@ -53,7 +54,7 @@ export async function proxy(request: NextRequest) {
       request.cookies.set(ACCESS_COOKIE, cookie.value);
       const response = forward(request);
       response.cookies.set(cookie);
-      // A static route would otherwise send the token on a response marked as cacheable.
+      // The response carries the token, so no cache may keep it.
       response.headers.set("Cache-Control", "private, no-store");
       return response;
     }
@@ -72,6 +73,19 @@ export async function proxy(request: NextRequest) {
       // The token may be fine, so the session stays. The page shows what any API failure shows.
       return;
   }
+}
+
+/**
+ * Routes the request, then sends the page policy with a fresh nonce (ADR 0010). The policy goes on
+ * the request too, because Next reads the nonce from it while rendering. Setting it before routing
+ * means a forwarded request, such as the one after a token refresh, carries it as well.
+ */
+export async function proxy(request: NextRequest) {
+  const policy = pagePolicy(Buffer.from(crypto.randomUUID()).toString("base64"));
+  request.headers.set("Content-Security-Policy", policy);
+  const response = (await route(request)) ?? forward(request);
+  response.headers.set("Content-Security-Policy", policy);
+  return response;
 }
 
 export const config = {
