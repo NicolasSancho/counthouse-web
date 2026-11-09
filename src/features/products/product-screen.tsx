@@ -25,6 +25,7 @@ import { STATUS_MEANINGS, STATUS_NAMES, statusBadgeVariant } from "@/features/pr
 import { orderVariants, variantStats } from "@/features/products/variants";
 import type { ProductDetail, Variant } from "@/server/api/schema";
 import { getCurrentUser } from "@/server/auth";
+import { getFormatLocales } from "@/server/locale";
 import { NavLink } from "@/shared/nav-link";
 
 /**
@@ -163,6 +164,7 @@ export async function ProductScreen({
 
   const product = read.value.value;
   const { units } = variantStats(product.variants);
+  const locales = await getFormatLocales();
 
   return (
     <>
@@ -181,11 +183,15 @@ export async function ProductScreen({
           <Badge variant={statusBadgeVariant(product.status)}>{STATUS_NAMES[product.status]}</Badge>
         </div>
         <p className="mt-1 text-sm text-neutral-600">
-          Updated <time dateTime={product.updatedAt}>{formatDateTime(product.updatedAt)}</time>
+          Updated{" "}
+          <time dateTime={product.updatedAt}>
+            {formatDateTime(product.updatedAt, locales.dates)}
+          </time>
           <span aria-hidden="true" className="mx-1.5 text-neutral-400">
             ·
           </span>
-          Created <time dateTime={product.createdAt}>{formatDate(product.createdAt)}</time>
+          Created{" "}
+          <time dateTime={product.createdAt}>{formatDate(product.createdAt, locales.dates)}</time>
         </p>
       </div>
 
@@ -197,7 +203,11 @@ export async function ProductScreen({
           <Section id="product-details" title="Details">
             <dl className="mt-3 divide-y divide-neutral-200 text-sm">
               <Fact term="Price">
-                {formatPrice(product.basePriceCents, user.value.tenant.defaultCurrency)}
+                {formatPrice(
+                  product.basePriceCents,
+                  user.value.tenant.defaultCurrency,
+                  locales.numbers
+                )}
               </Fact>
               <Fact term="Units on hand">{units}</Fact>
             </dl>

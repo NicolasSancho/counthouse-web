@@ -15,7 +15,9 @@ export default defineConfig({
   retries: 0,
   workers: process.env.CI ? 1 : undefined,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
-  use: { baseURL, trace: "retain-on-failure" },
+  // A fixed reader locale, so prices and dates do not depend on the machine's language. Playwright
+  // sends it as the browser's `Accept-Language`, which the app formats with.
+  use: { baseURL, locale: "en-GB", trace: "retain-on-failure" },
   projects: [
     // Signs in once and saves the cookies for the tests that need a session (e2e/session.ts).
     { name: "setup", testMatch: "**/*.setup.ts", use: { ...devices["Desktop Chrome"] } },

@@ -211,6 +211,20 @@ app-specific layout and screens live in this repo.
   hand, one case each, and Northwind's cases are set by name; tests refer to them by name.
   `demo-products.test.ts` checks the contract's prose rules.
 
+## Formats
+
+- Prices and dates follow the reader's region; the currency is always the tenant's. `getFormatLocales()`
+  (`src/server/locale.ts`) reads `Accept-Language` once per request, and `formatLocales()`
+  (`src/shared/locale.ts`) turns it into two locales: the reader's for prices, English with the
+  reader's region for dates (`en-DE`), so no month name in another language reaches an English page.
+- Any locale with Latin digits that reads left to right is accepted; anything else, or no header,
+  gives en-GB. A property test checks that no header yields other digits or direction marks.
+- Call `getFormatLocales()` inside a `Suspense` boundary, after the data, and pass the locale to the
+  formatters in `src/features/products/format.ts`. Format on the server only, so hydration never sees
+  a second locale. Times stay in UTC and say so; counts stay plain integers.
+- Playwright pins `locale: "en-GB"`; `e2e/locale.spec.ts` sets other readers. `Intl` separates an
+  amount from its symbol with a no-break space (`\u00a0`), so expectations spell it out.
+
 ## JavaScript
 
 Signed-in pages need JavaScript ([ADR 0009](docs/adr/0009-signed-in-pages-need-javascript.md)):
