@@ -9,19 +9,10 @@
 }
 
 /*
-  Default brand: violet. It overrides the same two library tokens a tenant brand does, so the
-  library's own default stays unchanged for its other consumers. Primary against the surface, which
-  has the same value as on-primary, measures 6.4:1 (light) and 6.0:1 (dark); the hover step measures
-  8.7:1 and 7.8:1. Text needs 4.5:1.
-*/
-:root {
-  --color-primary: light-dark(#6b4cae, #9f82e9);
-  --color-primary-darker: light-dark(#583797, #b499ff);
-}
-
-/*
-  Tenant presets, set on the signed-in shell by src/app/(app)/layout.tsx. Measured the same way as
-  the default: 7.5:1 (light) and 6.1:1 (dark); the hover step 10.2:1 and 7.9:1.
+  Tenant presets, set on the signed-in shell by src/app/(app)/layout.tsx. A tenant without one, and
+  the pages outside the shell, keep the library's primary. A preset overrides the same two tokens.
+  Measured against the surface, which has the same value as on-primary: primary 7.5:1 (light) and
+  6.1:1 (dark), the hover step 10.2:1 and 7.9:1. Text needs 4.5:1.
 */
 [data-brand="northwind"] {
   --color-primary: light-dark(#1f5f4a, #62a088);

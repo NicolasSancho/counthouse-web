@@ -158,9 +158,9 @@ app-specific layout and screens live in this repo.
   `dist` folder, because Tailwind does not scan `node_modules`. Use the token classes
   (`bg-surface`, `text-neutral-900`, `bg-primary text-on-primary`), never hard-coded colors: they
   switch with the theme and the brand.
-- The default brand (violet) overrides `--color-primary` and `--color-primary-darker` in
-  `globals.css`. Tenants change these two tokens only. Every tenant uses the same font, Inter,
-  loaded with `next/font` in the root layout.
+- The default brand is the library's own primary. A tenant preset overrides `--color-primary` and
+  `--color-primary-darker` in `globals.css`, and nothing else. Every tenant uses the same font,
+  Inter, loaded with `next/font` in the root layout.
 - With `typedRoutes` on, Next.js rejects `next/link` passed directly as a library `LinkComponent`:
   its `href` is typed as a known route and the library passes a string. Pass `NavLink`
   (`src/shared/nav-link.tsx`) instead, and keep the hrefs typed as `Route` where they are defined.

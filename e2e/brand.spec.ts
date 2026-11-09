@@ -3,9 +3,10 @@ import { expect, test, type Page } from "@playwright/test";
 import { expectNoAxeViolations } from "./axe";
 import { BRAND_COOKIE, brandCookie, REFRESH_COOKIE } from "./session";
 
-// The presets in src/app/globals.css, as the browser reports them.
+// As the browser reports them: Northwind's preset in src/app/globals.css, and the library's own
+// primary (#00548a, #73b0e6), which a tenant without a preset keeps.
 const northwind = { light: "rgb(31, 95, 74)", dark: "rgb(98, 160, 136)" };
-const violet = { light: "rgb(107, 76, 174)", dark: "rgb(159, 130, 233)" };
+const libraryPrimary = { light: "rgb(0, 84, 138)", dark: "rgb(115, 176, 230)" };
 
 const currentLink = (page: Page) => page.getByRole("link", { name: "Products" });
 const productsHeading = (page: Page) => page.getByRole("heading", { level: 1, name: "Products" });
@@ -63,7 +64,7 @@ for (const scheme of ["light", "dark"] as const) {
       await signInWith(page, "marta@counthouse.example");
       await expect(productsHeading(page)).toBeVisible();
 
-      await expect(currentLink(page)).toHaveCSS("border-left-color", violet[scheme]);
+      await expect(currentLink(page)).toHaveCSS("border-left-color", libraryPrimary[scheme]);
       expect(await brandCookie(page)).toBeUndefined();
       await expectNoAxeViolations(page);
     });
@@ -83,7 +84,7 @@ test("signing in to another tenant over a session removes the previous brand", a
   await signInWith(page, "marta@counthouse.example");
   await expect(productsHeading(page)).toBeVisible();
   await page.reload();
-  await expect(currentLink(page)).toHaveCSS("border-left-color", violet.light);
+  await expect(currentLink(page)).toHaveCSS("border-left-color", libraryPrimary.light);
   expect(await brandCookie(page)).toBeUndefined();
 });
 
