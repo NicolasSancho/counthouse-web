@@ -7,9 +7,8 @@ import { DemoBlock } from "./demo-block";
 import { LoginForm } from "./login-form";
 
 /**
- * The sign-in page. It reads nothing from the request, so it is prerendered in full: a form
- * posted without JavaScript comes back with its message and the email. The mode is read at
- * build time, so the demo block follows the `API_MODE` of the build.
+ * The sign-in page. Like every page, it renders per request for the script policy (ADR 0010), so
+ * the demo block follows the server's `API_MODE`.
  */
 export function LoginScreen({ expired = false }: { expired?: boolean }) {
   const demo = readApiMode() === "mock";

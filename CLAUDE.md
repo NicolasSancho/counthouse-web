@@ -138,9 +138,9 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
 - Sign-out is a plain form `POST` to `/logout`, a Route Handler that answers 303, so the browser
   loads `/login` as a new document. A Server Action redirect is a client navigation, and Next.js
   keeps the previous screen in the DOM, hidden. The handler repeats the Server Action origin check.
-- The sign-in pages are prerendered, so their demo block follows the `API_MODE` of the build.
-  Changing the mode needs a new build (on Vercel, a new deployment). Code that acts on the mode at
-  request time calls `readApiMode()` there.
+- The sign-in pages render per request, like every page (see "Security headers"), so their demo
+  block follows the server's `API_MODE`. Code that acts on the mode, such as the demo sign-in,
+  calls `readApiMode()` again.
 - End-to-end tests that need a session use `test.use({ storageState: signedInState })`
   (`e2e/session.ts`); the `setup` project signs in once. A second server of the same build runs
   in live mode with the API unreachable, for failure tests.
@@ -227,17 +227,34 @@ app-specific layout and screens live in this repo.
 
 ## JavaScript
 
-Signed-in pages need JavaScript ([ADR 0009](docs/adr/0009-signed-in-pages-need-javascript.md)):
-streamed content stays hidden without it, and `NoScriptNotice` in the `(app)` layout says so. The
-sign-in pages and Sign out work without it. Playwright's text matchers skip `<noscript>` content, so
-tests read `innerText()`.
+Working without JavaScript is not a goal. Signed-in pages need it
+([ADR 0009](docs/adr/0009-signed-in-pages-need-javascript.md)): streamed content stays hidden without
+it, and `NoScriptNotice` in the `(app)` layout says so. Forms work before the page hydrates where it
+costs nothing: sign-in, the demo and Sign out post natively. A failed sign-in in that state brings back
+the empty form ([ADR 0010](docs/adr/0010-script-policy-with-a-nonce.md)). Playwright's text matchers
+skip `<noscript>` content, so tests read `innerText()`.
+
+## Security headers
+
+- Pages get `script-src 'self' 'nonce-…' 'strict-dynamic'` plus `object-src 'none'`,
+  `base-uri 'self'` and `frame-ancestors 'none'`
+  ([ADR 0010](docs/adr/0010-script-policy-with-a-nonce.md)). Both policies are in `src/server/csp.ts`.
+- `src/proxy.ts` makes a new nonce on every request and sets the policy on the request, where Next
+  reads it while rendering, and on the response. `next.config.ts` sends the base policy for paths
+  the proxy skips; on the others the proxy's header replaces it.
+- The root layout awaits `connection()`, so every page renders per request: a page built ahead of
+  time would carry scripts without the nonce. Do not remove it.
+- A script the app adds itself (`next/script` or a `<script>` tag) needs the nonce from the request
+  headers, or the browser refuses it.
+- `e2e/csp.spec.ts` checks that every script carries the nonce and that injected scripts and inline
+  handlers do not run.
 
 ## Brand
 
 - The `(app)` layout reads the brand cookie with `readBrand()` (`src/server/brand.ts`) and sets
   `data-brand` on the wrapper around the shell, so every signed-in route renders per request
-  ([ADR 0007](docs/adr/0007-tenant-brand-read-on-the-server.md)). Keep this read out of the root
-  layout: there it makes the sign-in pages dynamic and breaks a failed sign-in without JavaScript.
+  ([ADR 0007](docs/adr/0007-tenant-brand-read-on-the-server.md)). Only signed-in pages need it, so
+  it stays out of the root layout.
 - A preset needs both a row in `PRESETS` and a `[data-brand]` rule in `src/app/globals.css`. Check its
   contrast in both themes and state it in the CSS comment.
 - The brand cookie is one of `SESSION_COOKIES`, so everything that ends a session deletes it. Sign-in

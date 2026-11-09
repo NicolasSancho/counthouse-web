@@ -1,6 +1,6 @@
 # 0009 Signed-in pages need JavaScript
 
-Status: Accepted
+Status: Accepted; a failed sign-in without JavaScript changed in 0010
 
 Records a consequence of [0002](0002-cache-components.md), which has authenticated UI stream in
 behind `Suspense`. The sign-in pages are not affected.

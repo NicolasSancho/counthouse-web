@@ -12,8 +12,8 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-// The sign-in page is prerendered with the mode of the build, so the action checks it again at
-// request time. It refuses before any API call or cookie access.
+// An action is a public endpoint, so the demo sign-in checks the mode itself instead of trusting the
+// page that showed the button. It refuses before any API call or cookie access.
 describe("signInAsDemo", () => {
   it("refuses in live mode", async () => {
     vi.stubEnv("API_MODE", "live");

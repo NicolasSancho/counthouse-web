@@ -1,17 +1,14 @@
 import type { NextConfig } from "next";
 
-/**
- * Only the directives that do not depend on how a page renders. Without `default-src`, this leaves
- * scripts, styles and connections unrestricted: a policy for those is a separate decision.
- */
-const contentSecurityPolicy = "frame-ancestors 'none'; object-src 'none'; base-uri 'self'";
+import { BASE_POLICY } from "./src/server/csp";
 
 const nextConfig: NextConfig = {
   headers: () =>
     Promise.resolve([
       {
         source: "/:path*",
-        headers: [{ key: "Content-Security-Policy", value: contentSecurityPolicy }],
+        // The proxy replaces this with the page policy on the paths it handles (src/proxy.ts).
+        headers: [{ key: "Content-Security-Policy", value: BASE_POLICY }],
       },
     ]),
   cacheComponents: true,

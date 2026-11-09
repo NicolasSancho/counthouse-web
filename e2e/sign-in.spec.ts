@@ -219,15 +219,6 @@ test.describe("sign-in errors", () => {
   });
 });
 
-test("a failed demo sign-in shows the error page", async ({ page }) => {
-  // The page was built in mock mode, so it shows the demo on the live server too. The action
-  // refuses there (src/features/auth/actions.test.ts covers the refusal itself).
-  await page.goto(`${apiDownURL}/login`);
-  await page.getByRole("button", { name: "Enter the demo" }).click();
-  await expect(page.getByText("Something went wrong.")).toBeVisible();
-  expect(await sessionCookies(page)).toEqual([]);
-});
-
 test("a form left open signs in over the session of another tab", async ({ page, context }) => {
   await page.goto("/login");
 
@@ -330,19 +321,14 @@ test.describe("without JavaScript", () => {
     expect(await sessionCookies(page)).toEqual([]);
   });
 
-  test("a wrong password shows the message and keeps the email", async ({ page }) => {
-    await page.goto("/login");
-    await signInWith(page, ANA, "wrong");
-    await expect(page.getByText("Email or password is wrong.")).toBeVisible();
-    await expect(page.getByLabel("Email")).toHaveValue(ANA);
-  });
-
-  test("a form left open still answers once session cookies exist", async ({ page }) => {
+  // A failed attempt brings back the empty form without its message: every page renders per
+  // request for the script policy (ADR 0010), and working without JavaScript is not a goal.
+  test("a form left open is not redirected once session cookies exist", async ({ page }) => {
     await page.goto("/login");
     await page.context().addCookies([cookie(ACCESS_COOKIE, "any"), cookie(REFRESH_COOKIE, "any")]);
     await signInWith(page, ANA, "wrong");
+    // A redirected post would end on /products or /login/expired.
     await expect(page).toHaveURL(/\/login$/);
-    await expect(page.getByText("Email or password is wrong.")).toBeVisible();
   });
 });
 

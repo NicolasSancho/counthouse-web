@@ -32,7 +32,7 @@ export default defineConfig({
       timeout: 60_000,
     },
     // The same build in live mode against a closed port, so every API call fails as it does with
-    // the API down. The sign-in page was prerendered in mock mode, so it still shows the demo.
+    // the API down.
     {
       command: `npm run start -- --port ${API_DOWN_PORT}`,
       url: `http://localhost:${API_DOWN_PORT}/login`,
