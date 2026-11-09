@@ -46,16 +46,20 @@ export function BackToProducts({ href }: { href: string }) {
   );
 }
 
-/** `Text` styles, on a plain `h2`: the library's `Text` does not pass an `id` through. */
-const HEADING = "text-sm font-semibold text-neutral-900";
+/** One style for every card heading on the page. */
+function SectionHeading({ id, children }: { id: string; children: ReactNode }) {
+  return (
+    <Text as="h2" id={id} size="small" weight="semibold" color="darker">
+      {children}
+    </Text>
+  );
+}
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
     <Card>
       <section aria-labelledby={id} className="p-4">
-        <h2 id={id} className={HEADING}>
-          {title}
-        </h2>
+        <SectionHeading id={id}>{title}</SectionHeading>
         {children}
       </section>
     </Card>
@@ -95,9 +99,7 @@ function Variants({ product }: { product: ProductDetail }) {
     <Card>
       <section aria-labelledby="product-variants">
         <div className="flex flex-wrap items-baseline gap-x-2 px-4 pt-4 pb-3">
-          <h2 id="product-variants" className={HEADING}>
-            Variants
-          </h2>
+          <SectionHeading id="product-variants">Variants</SectionHeading>
           <p className="text-sm text-neutral-600">
             {active} active{archived > 0 ? ` · ${archived} archived` : ""}
           </p>

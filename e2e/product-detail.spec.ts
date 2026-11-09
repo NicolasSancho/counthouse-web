@@ -95,6 +95,15 @@ test("an uppercase id opens the same product", async ({ page }) => {
   await expect(heading(page)).toHaveText("Trail Runner");
 });
 
+test("each card is a region named by its heading", async ({ page }) => {
+  await page.goto(TRAIL_RUNNER);
+  await expect(heading(page)).toHaveText("Trail Runner");
+
+  for (const name of ["Description", "Variants", "Status", "Details"]) {
+    await expect(page.getByRole("region", { name, exact: true })).toHaveCount(1);
+  }
+});
+
 test.describe("as Acme", () => {
   test.use({ storageState: martaState });
 
