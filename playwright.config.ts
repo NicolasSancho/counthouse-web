@@ -14,7 +14,8 @@ export default defineConfig({
   // No retries: a flaky test should fail the run and get fixed, not pass on a second try.
   retries: 0,
   workers: process.env.CI ? 1 : undefined,
-  reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
+  // In CI, `list` names each test in the log; `github` alone prints a dot per passing test.
+  reporter: process.env.CI ? [["list"], ["github"], ["html", { open: "never" }]] : "list",
   // A fixed reader locale, so prices and dates do not depend on the machine's language. Playwright
   // sends it as the browser's `Accept-Language`, which the app formats with.
   use: { baseURL, locale: "en-GB", trace: "retain-on-failure" },
@@ -39,6 +40,9 @@ export default defineConfig({
       // Nothing listens on port 3209, so the connection is refused. (Node's `fetch` refuses well-known
       // ports such as 9 before connecting.)
       env: { API_MODE: "live", API_BASE_URL: "http://127.0.0.1:3209/api/v1" },
+      // Every request to this server logs a refused connection on purpose; the tests check the
+      // behavior. Its logs would fill the run's output and bury real errors from the main server.
+      stderr: "ignore",
       reuseExistingServer: !process.env.CI,
       timeout: 60_000,
     },

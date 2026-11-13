@@ -143,7 +143,8 @@ code that depends on it. This repo keeps a pinned copy in `contract/openapi.yaml
   calls `readApiMode()` again.
 - End-to-end tests that need a session use `test.use({ storageState: signedInState })`
   (`e2e/session.ts`); the `setup` project signs in once. A second server of the same build runs
-  in live mode with the API unreachable, for failure tests.
+  in live mode with the API unreachable, for failure tests. Its stderr is ignored, since every
+  request logs a refused connection; remove `stderr: "ignore"` locally to debug one of those tests.
 
 ## UI library
 
